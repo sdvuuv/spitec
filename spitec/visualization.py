@@ -1,17 +1,19 @@
 from dash import html, dcc
 import plotly.graph_objects as go
 import dash_bootstrap_components as dbc
-from .data_processing import Site
 from enum import Enum
-import numpy as np
+from numpy.typing import NDArray
+
 
 class ProjectionType(Enum):
     MERCATOR = "mercator"
     ROBINSON = "robinson"
     ORTHOGRAPHIC = "orthographic"
 
-def create_layout(station_map, station_data) -> html.Div:
-    #station_checklist = create_station_checklist()
+
+def create_layout(station_map: go.Figure, station_data: go.Figure) -> html.Div:
+    # station_checklist = create_station_checklist()
+
     projection_radio = _create_projection_radio()
 
     size_map = 5
@@ -40,17 +42,12 @@ def create_layout(station_map, station_data) -> html.Div:
             dbc.Row(
                 [
                     dbc.Col(
-                        dcc.Graph(
-                            id = "graph-station-map",
-                            figure=station_map
-                        ),
+                        dcc.Graph(id="graph-station-map", figure=station_map),
                         width={"size": size_map},
                     ),
-                    #dbc.Col(station_checklist, width={"size": 2}),
+                    # dbc.Col(station_checklist, width={"size": 2}),
                     dbc.Col(
-                        dcc.Graph(
-                            figure=station_data
-                        ),
+                        dcc.Graph(figure=station_data),
                         width={"size": size_data},
                     ),
                 ],
@@ -62,7 +59,7 @@ def create_layout(station_map, station_data) -> html.Div:
                     width={"size": size_map},
                 ),
                 style={"margin-top": "30px", "text-align": "center"},
-            )
+            ),
         ],
         style={
             "margin-top": "30px",
@@ -72,30 +69,19 @@ def create_layout(station_map, station_data) -> html.Div:
     )
     return layout
 
+
 def create_station_map(
-        site_names: np.ndarray[Site], 
-        latitudes_array: np.ndarray[float], 
-        longitudes_array: np.ndarray[float]
-    )-> go.Figure:
+    site_names: NDArray, latitudes_array: NDArray, longitudes_array: NDArray
+) -> go.Figure:
     station_map = go.Scattergeo(
         lat=latitudes_array,
         lon=longitudes_array,
         text=site_names,
-        mode='markers+text', 
-        marker=dict(
-            size=8,
-            color='silver',
-            line=dict(
-                color='gray',
-                width=1  
-            )
-        ),
-         hoverlabel=dict(
-             bgcolor='white'
-        ),
-        textposition='top center',
-        hoverinfo='lat+lon'  # Отображаем только текст при наведении
-
+        mode="markers+text",
+        marker=dict(size=8, color="silver", line=dict(color="gray", width=1)),
+        hoverlabel=dict(bgcolor="white"),
+        textposition="top center",
+        hoverinfo="lat+lon",  # Отображаем только текст при наведении
     )
 
     figure = go.Figure(station_map)
@@ -104,25 +90,27 @@ def create_station_map(
         title_font=dict(size=28, color="black"),
         margin=dict(l=0, t=60, r=0, b=0),
     )
-    figure.update_geos(
-        landcolor = 'white'
-    )
+    figure.update_geos(landcolor="white")
 
     return figure
 
+
 def _create_projection_radio() -> html.Div:
-    options =  [{"label": projection.value.capitalize(), "value": projection.value}
-                for projection in ProjectionType]
+    options = [
+        {"label": projection.value.capitalize(), "value": projection.value}
+        for projection in ProjectionType
+    ]
     checklist = html.Div(
         dbc.RadioItems(
-                options=options,
-                value=ProjectionType.MERCATOR.value,
-                id="projection-radio",
-                inline=True,
-                style={"fontSize": "18px"}
+            options=options,
+            value=ProjectionType.MERCATOR.value,
+            id="projection-radio",
+            inline=True,
+            style={"fontSize": "18px"},
         )
     )
     return checklist
+
 
 def create_station_data() -> go.Figure:
     x = [1, 2, 3, 4, 5]
@@ -151,6 +139,7 @@ def create_station_data() -> go.Figure:
         margin=dict(l=0, t=60, r=0, b=0),
     )
     return station_data
+
 
 def create_station_checklist() -> html.Div:
     checklist = html.Div(
