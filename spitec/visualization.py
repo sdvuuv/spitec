@@ -76,12 +76,12 @@ def create_station_map(
     station_map = go.Scattergeo(
         lat=latitudes_array,
         lon=longitudes_array,
-        text=site_names,
+        text=[site.upper() for site in site_names],
         mode="markers+text",
         marker=dict(size=8, color="silver", line=dict(color="gray", width=1)),
         hoverlabel=dict(bgcolor="white"),
         textposition="top center",
-        hoverinfo="lat+lon",  # Отображаем только текст при наведении
+        hoverinfo="lat+lon"
     )
 
     figure = go.Figure(station_map)
@@ -90,7 +90,14 @@ def create_station_map(
         title_font=dict(size=28, color="black"),
         margin=dict(l=0, t=60, r=0, b=0),
     )
-    figure.update_geos(landcolor="white")
+    figure.update_geos(
+        landcolor="white",
+        # landcolor="LightGreen",
+        # showocean=True,
+        # oceancolor="LightBlue",
+        # showcountries=True,
+        # countrycolor="Black",
+        )
 
     return figure
 
@@ -103,7 +110,7 @@ def _create_projection_radio() -> html.Div:
     checklist = html.Div(
         dbc.RadioItems(
             options=options,
-            value=ProjectionType.MERCATOR.value,
+            value=ProjectionType.ROBINSON.value,
             id="projection-radio",
             inline=True,
             style={"fontSize": "18px"},
