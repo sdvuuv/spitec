@@ -3,8 +3,8 @@ from pathlib import Path
 from datetime import datetime, UTC
 import numpy as np
 from numpy.typing import NDArray
-from station_processing import Site
-from data_products import DataProduct, DataProducts
+from .station_processing import Site
+from .data_products import DataProduct, DataProducts
 
 
 class Sat(str):
@@ -28,8 +28,6 @@ def retrieve_data(
             for dataproduct in DataProducts:
                 if dataproduct is DataProducts.time:
                     continue
-                data[site][sat][dataproduct] = f[site][sat][
-                    dataproduct.hdf_name
-                ][:]
+                data[site][sat][dataproduct] = f[site][sat][dataproduct.hdf_name][:]
     f.close()
     return data

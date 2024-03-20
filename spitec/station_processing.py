@@ -34,12 +34,8 @@ def get_namelatlon_arrays(
     site_coords: dict[Site, dict[Coordinate, float]]
 ) -> tuple[NDArray]:
     site_names = np.array(list(site_coords.keys()))
-    latitudes = [
-        np.degrees(site_coords[name][Coordinate.lat]) for name in site_names
-    ]
-    longitudes = [
-        np.degrees(site_coords[name][Coordinate.lon]) for name in site_names
-    ]
+    latitudes = [np.degrees(site_coords[name][Coordinate.lat]) for name in site_names]
+    longitudes = [np.degrees(site_coords[name][Coordinate.lon]) for name in site_names]
 
     latitudes_array = np.array(latitudes)
     longitudes_array = np.array(longitudes)
@@ -62,9 +58,7 @@ def select_sites_by_region(
         site_lat = np.degrees(site_lat_radians)
         site_lon = np.degrees(site_lon_radians)
         if min_lat < site_lat < max_lat and min_lon < site_lon < max_lon:
-            _add_site_to_dict(
-                regional_coords, site, site_lat_radians, site_lon_radians
-            )
+            _add_site_to_dict(regional_coords, site, site_lat_radians, site_lon_radians)
     return regional_coords
 
 
@@ -106,9 +100,7 @@ def select_sites_in_circle(
         late = coords[site][Coordinate.lat]
         lone = coords[site][Coordinate.lon]
 
-        distance = get_great_circle_distance(
-            late, lone, late_central, lone_central
-        )
+        distance = get_great_circle_distance(late, lone, late_central, lone_central)
         if distance <= distance_threshold:
             _add_site_to_dict(circular_coords, site, late, lone)
     return circular_coords

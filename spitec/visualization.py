@@ -2,6 +2,7 @@ from dash import html, dcc
 import plotly.graph_objects as go
 import dash_bootstrap_components as dbc
 from enum import Enum
+import numpy as np
 from numpy.typing import NDArray
 
 
@@ -9,6 +10,12 @@ class ProjectionType(Enum):
     MERCATOR = "mercator"
     ROBINSON = "robinson"
     ORTHOGRAPHIC = "orthographic"
+
+
+class PointColor(Enum):
+    SILVER = "silver"
+    RED = "red"
+    GREEN = "green"
 
 
 def create_layout(station_map: go.Figure, station_data: go.Figure) -> html.Div:
@@ -47,7 +54,7 @@ def create_layout(station_map: go.Figure, station_data: go.Figure) -> html.Div:
                     ),
                     # dbc.Col(station_checklist, width={"size": 2}),
                     dbc.Col(
-                        dcc.Graph(figure=station_data),
+                        dcc.Graph(id="graph-station-data", figure=station_data),
                         width={"size": size_data},
                     ),
                 ],
@@ -73,15 +80,16 @@ def create_layout(station_map: go.Figure, station_data: go.Figure) -> html.Div:
 def create_station_map(
     site_names: NDArray, latitudes_array: NDArray, longitudes_array: NDArray
 ) -> go.Figure:
+    colors = np.array([PointColor.SILVER.value] * site_names.shape[0])
     station_map = go.Scattergeo(
         lat=latitudes_array,
         lon=longitudes_array,
         text=[site.upper() for site in site_names],
         mode="markers+text",
-        marker=dict(size=8, color="silver", line=dict(color="gray", width=1)),
+        marker=dict(size=8, color=colors, line=dict(color="gray", width=1)),
         hoverlabel=dict(bgcolor="white"),
         textposition="top center",
-        hoverinfo="lat+lon"
+        hoverinfo="lat+lon",
     )
 
     figure = go.Figure(station_map)
@@ -97,7 +105,7 @@ def create_station_map(
         # oceancolor="LightBlue",
         # showcountries=True,
         # countrycolor="Black",
-        )
+    )
 
     return figure
 
@@ -110,7 +118,6 @@ def _create_projection_radio() -> html.Div:
     checklist = html.Div(
         dbc.RadioItems(
             options=options,
-            value=ProjectionType.ROBINSON.value,
             id="projection-radio",
             inline=True,
             style={"fontSize": "18px"},
@@ -120,30 +127,14 @@ def _create_projection_radio() -> html.Div:
 
 
 def create_station_data() -> go.Figure:
-    x = [1, 2, 3, 4, 5]
-    y1 = [10, 15, 13, 17, 18]
-    y2 = [16, 5, 11, 9, 7]
-    y3 = [12, 9, 1, 0, 3]
-    y4 = [5, 8, 9, 14, 6]
-
     station_data = go.Figure()
-    station_data.add_trace(
-        go.Scatter(x=x, y=y1, mode="lines", name="Станция 1")
-    )
-    station_data.add_trace(
-        go.Scatter(x=x, y=y2, mode="lines", name="Станция 3")
-    )
-    station_data.add_trace(
-        go.Scatter(x=x, y=y3, mode="lines", name="Станция 5")
-    )
-    station_data.add_trace(
-        go.Scatter(x=x, y=y4, mode="lines", name="Станция 7")
-    )
 
     station_data.update_layout(
         title="Данные",
         title_font=dict(size=28, color="black"),
         margin=dict(l=0, t=60, r=0, b=0),
+        xaxis_title="Время",
+        yaxis_title="Данные",
     )
     return station_data
 
