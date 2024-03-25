@@ -34,18 +34,24 @@ def register_callbacks(app, station_map, station_data, LOCAL_FILE) -> None:
             site_idx = clickData["points"][0]["pointIndex"]
             site_color = station_map.data[0].marker.color[site_idx]
             if site_color == PointColor.SILVER.value:
-                station_map.data[0].marker.color[site_idx] = PointColor.RED.value
+                add_line(shift, site_name, site_idx)
+            elif site_color == PointColor.RED.value:
+                delete_line(shift, site_name, site_idx)
+        return station_map, None, station_data
 
-                site_data = retrieve_data(LOCAL_FILE, [site_name])
-                sat = list(site_data[site_name].keys())[0]
-                dataproduct = DataProducts.dtec_2_10
+    def add_line(shift, site_name, site_idx):
+        station_map.data[0].marker.color[site_idx] = PointColor.RED.value
 
-                vals = site_data[site_name][sat][dataproduct]
-                times = site_data[site_name][sat][DataProducts.time]
+        site_data = retrieve_data(LOCAL_FILE, [site_name])
+        sat = list(site_data[site_name].keys())[0]
+        dataproduct = DataProducts.dtec_2_10
 
-                number_lines = len(station_data.data)
+        vals = site_data[site_name][sat][dataproduct]
+        times = site_data[site_name][sat][DataProducts.time]
 
-                station_data.add_trace(
+        number_lines = len(station_data.data)
+
+        station_data.add_trace(
                     go.Scatter(
                         x=times,
                         y=vals + shift * number_lines,
@@ -53,18 +59,19 @@ def register_callbacks(app, station_map, station_data, LOCAL_FILE) -> None:
                         name=site_name.upper(),
                     )
                 )
-            elif site_color == PointColor.RED.value:
-                station_map.data[0].marker.color[site_idx] = PointColor.SILVER.value
+        
+    def delete_line(shift, site_name, site_idx):
+        station_map.data[0].marker.color[site_idx] = PointColor.SILVER.value
 
-                site_data = dict()
-                for i, site in enumerate(station_data.data):
-                    if site.name.lower() != site_name:
-                        site_data[site.name] = dict()
-                        site_data[site.name]["x"] = site.x
-                        site_data[site.name]["y"] = site.y - shift * i
-                station_data.data = []
-                for i, site in enumerate(list(site_data.keys())):
-                    station_data.add_trace(
+        site_data = dict()
+        for i, site in enumerate(station_data.data):
+            if site.name.lower() != site_name:
+                site_data[site.name] = dict()
+                site_data[site.name]["x"] = site.x
+                site_data[site.name]["y"] = site.y - shift * i
+        station_data.data = []
+        for i, site in enumerate(list(site_data.keys())):
+            station_data.add_trace(
                         go.Scatter(
                             x=site_data[site]["x"],
                             y=site_data[site]["y"] + shift * i,
@@ -72,4 +79,5 @@ def register_callbacks(app, station_map, station_data, LOCAL_FILE) -> None:
                             name=site,
                         )
                     )
-        return station_map, None, station_data
+    
+
