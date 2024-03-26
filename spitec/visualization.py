@@ -19,9 +19,8 @@ class PointColor(Enum):
 
 
 def create_layout(station_map: go.Figure, station_data: go.Figure) -> html.Div:
-    # station_checklist = create_station_checklist()
-
     projection_radio = _create_projection_radio()
+    time_slider = _create_time_slider()
 
     size_map = 5
     size_data = 7
@@ -52,20 +51,34 @@ def create_layout(station_map: go.Figure, station_data: go.Figure) -> html.Div:
                         dcc.Graph(id="graph-station-map", figure=station_map),
                         width={"size": size_map},
                     ),
-                    # dbc.Col(station_checklist, width={"size": 2}),
                     dbc.Col(
-                        dcc.Graph(id="graph-station-data", figure=station_data),
+                        dcc.Graph(
+                            id="graph-station-data", figure=station_data
+                        ),
                         width={"size": size_data},
                     ),
                 ],
+                align="center",
                 style={"margin-top": "30px"},
             ),
             dbc.Row(
-                dbc.Col(
-                    projection_radio,
-                    width={"size": size_map},
-                ),
-                style={"margin-top": "30px", "text-align": "center"},
+                [
+                    dbc.Col(
+                        projection_radio,
+                        width={"size": size_map},
+                        style={"margin-top": "30px"},
+                    ),
+                    dbc.Col(
+                        [
+                            time_slider,
+                            html.Div(id="output-left"),
+                            html.Div(id="output-right"),
+                        ],
+                        width={"size": size_data},
+                        style={"margin-top": "30px"},
+                    ),
+                ],
+                style={"text-align": "center", "fontSize": "18px"},
             ),
         ],
         style={
@@ -120,7 +133,6 @@ def _create_projection_radio() -> html.Div:
             options=options,
             id="projection-radio",
             inline=True,
-            style={"fontSize": "18px"},
         )
     )
     return checklist
@@ -133,31 +145,27 @@ def create_station_data() -> go.Figure:
         title="Данные",
         title_font=dict(size=28, color="black"),
         margin=dict(l=0, t=60, r=0, b=0),
-        xaxis_title="Время",
-        yaxis_title="Данные",
+        xaxis=dict(title="Время"),
     )
     return station_data
 
 
-def create_station_checklist() -> html.Div:
-    checklist = html.Div(
-        [
-            html.H3("Станции"),
-            dbc.Checklist(
-                options=[
-                    {"label": "Станция 1", "value": 1},
-                    {"label": "Станция 2", "value": 2},
-                    {"label": "Станция 3", "value": 3},
-                    {"label": "Станция 4", "value": 4},
-                    {"label": "Станция 5", "value": 5},
-                    {"label": "Станция 6", "value": 6},
-                    {"label": "Станция 7", "value": 7},
-                ],
-                value=[1, 3, 5, 7],
-                id="station-checklist",
-                style={"margin-top": "20px"},
-            ),
-        ],
-        style={"margin-left": "30px"},
+def _create_time_slider() -> html.Div:
+    marks = {i: f"{i:02d}:00" if i % 3 == 0 else "" for i in range(25)}
+    time_slider = html.Div(
+        dcc.RangeSlider(
+            id="time-slider",
+            min=0,
+            max=24,
+            step=1,
+            marks=marks,
+            value=[0, 24],
+            allowCross=False,
+            tooltip={
+                "placement": "top",
+                "style": {"fontSize": "18px"},
+                "template": "{value}:00",
+            },
+        ),
     )
-    return checklist
+    return time_slider
