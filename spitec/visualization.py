@@ -69,16 +69,25 @@ def create_layout(station_map: go.Figure, station_data: go.Figure) -> html.Div:
                         style={"margin-top": "30px"},
                     ),
                     dbc.Col(
-                        [
-                            time_slider,
-                            html.Div(id="output-left"),
-                            html.Div(id="output-right"),
-                        ],
+                        time_slider,
                         width={"size": size_data},
                         style={"margin-top": "30px"},
                     ),
                 ],
                 style={"text-align": "center", "fontSize": "18px"},
+            ),
+            dbc.Row(
+                dbc.Col(
+                    dbc.Button(
+                        "Очистить всё", id="clear-all", className="me-1"
+                    ),
+                    width={"size": size_data, "offset": size_map},
+                    style={
+                        "margin-top": "20px",
+                        "fontSize": "18px",
+                        "text-align": "center",
+                    },
+                )
             ),
         ],
         style={

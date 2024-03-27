@@ -22,7 +22,7 @@ def register_callbacks(app, station_map, station_data, LOCAL_FILE) -> None:
 
     @app.callback(
         [
-            Output("graph-station-map", "figure"),
+            Output("graph-station-map", "figure", allow_duplicate=True),
             Output("graph-station-map", "clickData"),
             Output("graph-station-data", "figure", allow_duplicate=True),
             Output("time-slider", "disabled", allow_duplicate=True),
@@ -129,12 +129,33 @@ def register_callbacks(app, station_map, station_data, LOCAL_FILE) -> None:
 
     @app.callback(
         [
+            Output("graph-station-map", "figure", allow_duplicate=True),
+            Output("graph-station-data", "figure", allow_duplicate=True),
+            Output("time-slider", "value"),
+        ],
+        [Input("clear-all", "n_clicks")],
+        prevent_initial_call=True,
+    )
+    def clear_all(n_clicks: int) -> list[go.Figure | list[int]]:
+        for i, color in enumerate(station_map.data[0].marker.color):
+            if color == PointColor.RED.value:
+                station_map.data[0].marker.color[i] = PointColor.SILVER.value
+        station_data.data = []
+        station_data.layout.xaxis = dict(title="Время")
+        station_data.layout.yaxis = dict()
+        print(station_data.layout)
+
+        time_slider_value = [0, 24]
+        return station_map, station_data, time_slider_value
+
+    @app.callback(
+        [
             Output("graph-station-data", "figure"),
             Output("time-slider", "disabled"),
         ],
         [Input("time-slider", "value")],
     )
-    def update_output(value: list[int]) -> go.Figure:
+    def change_xaxis(value: list[int]) -> list[go.Figure | bool]:
         if len(station_data.data) == 0:
             return station_data, True
         date = station_data.data[0].x[0]
