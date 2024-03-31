@@ -143,10 +143,20 @@ def register_callbacks(app, station_map, station_data, LOCAL_FILE) -> None:
         station_data.data = []
         station_data.layout.xaxis = dict(title="Время")
         station_data.layout.yaxis = dict()
-        print(station_data.layout)
 
         time_slider_value = [0, 24]
         return station_map, station_data, time_slider_value
+
+    @app.callback(
+        Output("graph-station-map", "figure"),
+        [Input("hide-show-site", "value")],
+    )
+    def hide_show_site(value: bool) -> go.Figure:
+        if value:
+            station_map.data[0].mode = "markers+text"
+        else:
+            station_map.data[0].mode = "markers"
+        return station_map
 
     @app.callback(
         [

@@ -21,6 +21,7 @@ class PointColor(Enum):
 def create_layout(station_map: go.Figure, station_data: go.Figure) -> html.Div:
     projection_radio = _create_projection_radio()
     time_slider = _create_time_slider()
+    checkbox_site = _create_checkbox_site()
 
     size_map = 5
     size_data = 7
@@ -34,14 +35,19 @@ def create_layout(station_map: go.Figure, station_data: go.Figure) -> html.Div:
                             dbc.Button(
                                 "Открыть",
                                 className="me-1",
-                                style={"margin-left": "20px"},
+                                style={"margin-left": "15px"},
                             ),
                             dbc.Button(
                                 "Настройки",
                                 className="me-1",
-                                style={"margin-left": "20px"},
+                                style={"margin-left": "15px"},
                             ),
-                        ]
+                        ],
+                        width={"size": 3},
+                    ),
+                    dbc.Col(
+                        checkbox_site,
+                        width={"size": 2},
                     ),
                 ]
             ),
@@ -178,3 +184,19 @@ def _create_time_slider() -> html.Div:
         ),
     )
     return time_slider
+
+
+def _create_checkbox_site() -> html.Div:
+    checkbox = html.Div(
+        [
+            dbc.Checkbox(
+                id="hide-show-site", label="Имена станций", value=True
+            ),
+        ],
+        style={
+            "display": "flex",
+            "justify-content": "right",
+            "margin-top": "5px",
+        },
+    )
+    return checkbox
