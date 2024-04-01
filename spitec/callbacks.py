@@ -1,19 +1,27 @@
-from dash.dependencies import Input, Output
+from dash.dependencies import Input, Output, State
 import plotly.graph_objects as go
 from .visualization import PointColor, ProjectionType
 from .data_processing import Sat, retrieve_data
 from .data_products import DataProduct, DataProducts
-from .station_processing import Site
+from .station_processing import (
+    Site,
+    Coordinate,
+    select_sites_by_region,
+    select_sites_in_circle,
+    get_namelatlon_arrays,
+)
 from datetime import datetime, UTC
 import dash
 from dash import html, dcc
 import dash_bootstrap_components as dbc
 from pathlib import Path
+from numpy.typing import NDArray
 
 
 def register_callbacks(
     app: dash.Dash,
     LOCAL_FILE: Path | str,
+    site_coords: dict[Site, dict[Coordinate, float]],
     station_map: go.Figure,
     station_data: go.Figure,
     projection_radio: dbc.RadioItems,
@@ -41,21 +49,26 @@ def register_callbacks(
             Output("div-time-slider", "children", allow_duplicate=True),
         ],
         [Input("graph-station-map", "clickData")],
+        [State("data-store", "data")],
         prevent_initial_call=True,
     )
     def update_station_data(
-        clickData: dict[str, list[dict[str, float | str | dict]]]
-    ) -> list[go.Figure | None | bool]:
+        clickData: dict[str, list[dict[str, float | str | dict]]],
+        data: NDArray,
+    ) -> list[go.Figure | None | bool | dcc.RangeSlider]:
         shift = -0.5
 
         if clickData is not None:
             site_name = clickData["points"][0]["text"].lower()
             site_idx = clickData["points"][0]["pointIndex"]
             site_color = station_map.data[0].marker.color[site_idx]
-            if site_color == PointColor.SILVER.value:
+            if (
+                site_color == PointColor.SILVER.value
+                or site_color == PointColor.GREEN.value
+            ):
                 add_line(shift, site_name, site_idx)
             elif site_color == PointColor.RED.value:
-                delete_line(shift, site_name, site_idx)
+                delete_line(shift, site_name, site_idx, data)
         time_slider.disabled = True if len(station_data.data) == 0 else False
         return station_map, None, station_data, time_slider
 
@@ -101,9 +114,15 @@ def register_callbacks(
             yaxis_data["ticktext"].append(site_name.upper())
             update_yaxis(yaxis_data)
 
-    def delete_line(shift: float, site_name: Site, site_idx: int) -> None:
-        station_map.data[0].marker.color[site_idx] = PointColor.SILVER.value
-
+    def delete_line(
+        shift: float, site_name: Site, site_idx: int, data: NDArray
+    ) -> None:
+        if data is not None and site_name in data:
+            station_map.data[0].marker.color[site_idx] = PointColor.GREEN.value
+        else:
+            station_map.data[0].marker.color[
+                site_idx
+            ] = PointColor.SILVER.value
         site_data = dict()
         for i, site in enumerate(station_data.data):
             if site.name.lower() != site_name:
@@ -148,7 +167,7 @@ def register_callbacks(
         [Input("time-slider", "value")],
         prevent_initial_call=True,
     )
-    def change_xaxis(value: list[int]) -> list[go.Figure | bool]:
+    def change_xaxis(value: list[int]) -> list[go.Figure | dcc.RangeSlider]:
         if len(station_data.data) == 0:
             return station_data, time_slider
         date = station_data.data[0].x[0]
@@ -191,12 +210,23 @@ def register_callbacks(
             Output("div-time-slider", "children", allow_duplicate=True),
         ],
         [Input("clear-all", "n_clicks")],
+        [State("data-store", "data")],
         prevent_initial_call=True,
     )
-    def clear_all(n_clicks: int) -> list[go.Figure | list[int]]:
+    def clear_all(n: int, data: NDArray) -> list[go.Figure | dcc.RangeSlider]:
         for i, color in enumerate(station_map.data[0].marker.color):
             if color == PointColor.RED.value:
-                station_map.data[0].marker.color[i] = PointColor.SILVER.value
+                if (
+                    data is not None
+                    and station_map.data[0].text[i].lower() in data
+                ):
+                    station_map.data[0].marker.color[
+                        i
+                    ] = PointColor.GREEN.value
+                else:
+                    station_map.data[0].marker.color[
+                        i
+                    ] = PointColor.SILVER.value
         station_data.data = []
         station_data.layout.xaxis = dict(title="Время")
         station_data.layout.yaxis = dict()
@@ -217,3 +247,91 @@ def register_callbacks(
             station_map.data[0].mode = "markers"
         checkbox_site.value = value
         return station_map
+
+    @app.callback(
+        [
+            Output("graph-station-map", "figure", allow_duplicate=True),
+            Output("min-lat", "invalid"),
+            Output("max-lat", "invalid"),
+            Output("min-lon", "invalid"),
+            Output("max-lon", "invalid"),
+            Output("data-store", "data", allow_duplicate=True),
+        ],
+        [Input("apply-lat-lon", "n_clicks")],
+        [
+            State("min-lat", "value"),
+            State("max-lat", "value"),
+            State("min-lon", "value"),
+            State("max-lon", "value"),
+        ],
+        prevent_initial_call=True,
+    )
+    def apply_selection_by_region(
+        n: int, min_lat: int, max_lat: int, min_lon: int, max_lon: int
+    ) -> list[go.Figure | bool | list[str]]:
+        return_value_list = [station_map, False, False, False, False, None]
+        check_lat_lon_value(
+            min_lat, max_lat, [-90, 90], [1, 2], return_value_list
+        )
+        check_lat_lon_value(
+            min_lon, max_lon, [-180, 180], [3, 4], return_value_list
+        )
+
+        if True in return_value_list:
+            return return_value_list
+        else:
+            sites_by_region = select_sites_by_region(
+                site_coords, min_lat, max_lat, min_lon, max_lon
+            )
+            sites, _, _ = get_namelatlon_arrays(sites_by_region)
+            return_value_list[-1] = sites
+            for i, site in enumerate(station_map.data[0].text):
+                if site.lower() in sites:
+                    if (
+                        station_map.data[0].marker.color[i]
+                        == PointColor.SILVER.value
+                    ):
+                        station_map.data[0].marker.color[
+                            i
+                        ] = PointColor.GREEN.value
+                elif (
+                    station_map.data[0].marker.color[i]
+                    == PointColor.GREEN.value
+                ):
+                    station_map.data[0].marker.color[
+                        i
+                    ] = PointColor.SILVER.value
+        return_value_list[0] = station_map
+        return return_value_list
+
+    def check_lat_lon_value(
+        min_l: int,
+        max_l: int,
+        degree_range: list[int],
+        idx: list[int],
+        return_value_list: dict[str, go.Figure | bool],
+    ) -> None:
+        if min_l is None or max_l is None:
+            return_value_list[idx[0]] = True
+            return_value_list[idx[1]] = True
+        elif min_l >= max_l:
+            return_value_list[idx[0]] = True
+            return_value_list[idx[1]] = True
+        elif min_l < degree_range[0] or min_l > degree_range[1]:
+            return_value_list[idx[0]] = True
+        elif max_l < degree_range[0] or max_l > degree_range[1]:
+            return_value_list[idx[1]] = True
+
+    @app.callback(
+        [
+            Output("graph-station-map", "figure", allow_duplicate=True),
+            Output("data-store", "data"),
+        ],
+        [Input("clear-lat-lon", "n_clicks")],
+        prevent_initial_call=True,
+    )
+    def clear_lat_lon(n: int) -> list[go.Figure | None]:
+        for i, color in enumerate(station_map.data[0].marker.color):
+            if color == PointColor.GREEN.value:
+                station_map.data[0].marker.color[i] = PointColor.SILVER.value
+        return station_map, None

@@ -22,6 +22,7 @@ app.layout = create_layout(
 register_callbacks(
     app,
     LOCAL_FILE,
+    site_coords,
     station_map,
     station_data,
     projection_radio,
