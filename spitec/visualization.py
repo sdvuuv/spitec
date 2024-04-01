@@ -18,10 +18,13 @@ class PointColor(Enum):
     GREEN = "green"
 
 
-def create_layout(station_map: go.Figure, station_data: go.Figure) -> html.Div:
-    projection_radio = _create_projection_radio()
-    time_slider = _create_time_slider()
-    checkbox_site = _create_checkbox_site()
+def create_layout(
+    station_map: go.Figure,
+    station_data: go.Figure,
+    projection_radio: dbc.RadioItems,
+    time_slider: dcc.RangeSlider,
+    checkbox_site: dbc.Checkbox,
+) -> html.Div:
 
     size_map = 5
     size_data = 7
@@ -46,7 +49,14 @@ def create_layout(station_map: go.Figure, station_data: go.Figure) -> html.Div:
                         width={"size": 3},
                     ),
                     dbc.Col(
-                        checkbox_site,
+                        html.Div(
+                            checkbox_site,
+                            style={
+                                "display": "flex",
+                                "justify-content": "right",
+                                "margin-top": "5px",
+                            },
+                        ),
                         width={"size": 2},
                     ),
                 ]
@@ -70,12 +80,12 @@ def create_layout(station_map: go.Figure, station_data: go.Figure) -> html.Div:
             dbc.Row(
                 [
                     dbc.Col(
-                        projection_radio,
+                        html.Div(projection_radio),
                         width={"size": size_map},
                         style={"margin-top": "30px"},
                     ),
                     dbc.Col(
-                        time_slider,
+                        html.Div(time_slider, id="div-time-slider"),
                         width={"size": size_data},
                         style={"margin-top": "30px"},
                     ),
@@ -138,19 +148,18 @@ def create_station_map(
     return figure
 
 
-def _create_projection_radio() -> html.Div:
+def create_projection_radio() -> dbc.RadioItems:
     options = [
         {"label": projection.value.capitalize(), "value": projection.value}
         for projection in ProjectionType
     ]
-    checklist = html.Div(
-        dbc.RadioItems(
-            options=options,
-            id="projection-radio",
-            inline=True,
-        )
+    radio_items = dbc.RadioItems(
+        options=options,
+        id="projection-radio",
+        inline=True,
+        value=ProjectionType.MERCATOR.value,
     )
-    return checklist
+    return radio_items
 
 
 def create_station_data() -> go.Figure:
@@ -165,38 +174,28 @@ def create_station_data() -> go.Figure:
     return station_data
 
 
-def _create_time_slider() -> html.Div:
+def create_time_slider() -> dcc.RangeSlider:
     marks = {i: f"{i:02d}:00" if i % 3 == 0 else "" for i in range(25)}
-    time_slider = html.Div(
-        dcc.RangeSlider(
-            id="time-slider",
-            min=0,
-            max=24,
-            step=1,
-            marks=marks,
-            value=[0, 24],
-            allowCross=False,
-            tooltip={
-                "placement": "top",
-                "style": {"fontSize": "18px"},
-                "template": "{value}:00",
-            },
-        ),
+    time_slider = dcc.RangeSlider(
+        id="time-slider",
+        min=0,
+        max=24,
+        step=1,
+        marks=marks,
+        value=[0, 24],
+        allowCross=False,
+        tooltip={
+            "placement": "top",
+            "style": {"fontSize": "18px"},
+            "template": "{value}:00",
+        },
+        disabled=True,
     )
     return time_slider
 
 
-def _create_checkbox_site() -> html.Div:
-    checkbox = html.Div(
-        [
-            dbc.Checkbox(
-                id="hide-show-site", label="Имена станций", value=True
-            ),
-        ],
-        style={
-            "display": "flex",
-            "justify-content": "right",
-            "margin-top": "5px",
-        },
+def create_checkbox_site() -> dbc.Checkbox:
+    checkbox = dbc.Checkbox(
+        id="hide-show-site", label="Имена станций", value=True
     )
     return checkbox

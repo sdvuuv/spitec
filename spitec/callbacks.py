@@ -5,9 +5,21 @@ from .data_processing import Sat, retrieve_data
 from .data_products import DataProduct, DataProducts
 from .station_processing import Site
 from datetime import datetime, UTC
+import dash
+from dash import html, dcc
+import dash_bootstrap_components as dbc
+from pathlib import Path
 
 
-def register_callbacks(app, station_map, station_data, LOCAL_FILE) -> None:
+def register_callbacks(
+    app: dash.Dash,
+    LOCAL_FILE: Path | str,
+    station_map: go.Figure,
+    station_data: go.Figure,
+    projection_radio: dbc.RadioItems,
+    time_slider: dcc.RangeSlider,
+    checkbox_site: dbc.Checkbox,
+) -> None:
     @app.callback(
         Output("graph-station-map", "figure", allow_duplicate=True),
         [Input("projection-radio", "value")],
@@ -18,6 +30,7 @@ def register_callbacks(app, station_map, station_data, LOCAL_FILE) -> None:
             station_map.update_layout(
                 geo=dict(projection_type=projection_value)
             )
+        projection_radio.value = projection_value
         return station_map
 
     @app.callback(
@@ -25,7 +38,7 @@ def register_callbacks(app, station_map, station_data, LOCAL_FILE) -> None:
             Output("graph-station-map", "figure", allow_duplicate=True),
             Output("graph-station-map", "clickData"),
             Output("graph-station-data", "figure", allow_duplicate=True),
-            Output("time-slider", "disabled", allow_duplicate=True),
+            Output("div-time-slider", "children", allow_duplicate=True),
         ],
         [Input("graph-station-map", "clickData")],
         prevent_initial_call=True,
@@ -43,8 +56,8 @@ def register_callbacks(app, station_map, station_data, LOCAL_FILE) -> None:
                 add_line(shift, site_name, site_idx)
             elif site_color == PointColor.RED.value:
                 delete_line(shift, site_name, site_idx)
-        disabled_time_slider = True if len(station_data.data) == 0 else False
-        return station_map, None, station_data, disabled_time_slider
+        time_slider.disabled = True if len(station_data.data) == 0 else False
+        return station_map, None, station_data, time_slider
 
     def add_line(shift: float, site_name: Site, site_idx: int) -> None:
         station_map.data[0].marker.color[site_idx] = PointColor.RED.value
@@ -129,45 +142,15 @@ def register_callbacks(app, station_map, station_data, LOCAL_FILE) -> None:
 
     @app.callback(
         [
-            Output("graph-station-map", "figure", allow_duplicate=True),
             Output("graph-station-data", "figure", allow_duplicate=True),
-            Output("time-slider", "value"),
-        ],
-        [Input("clear-all", "n_clicks")],
-        prevent_initial_call=True,
-    )
-    def clear_all(n_clicks: int) -> list[go.Figure | list[int]]:
-        for i, color in enumerate(station_map.data[0].marker.color):
-            if color == PointColor.RED.value:
-                station_map.data[0].marker.color[i] = PointColor.SILVER.value
-        station_data.data = []
-        station_data.layout.xaxis = dict(title="Время")
-        station_data.layout.yaxis = dict()
-
-        time_slider_value = [0, 24]
-        return station_map, station_data, time_slider_value
-
-    @app.callback(
-        Output("graph-station-map", "figure"),
-        [Input("hide-show-site", "value")],
-    )
-    def hide_show_site(value: bool) -> go.Figure:
-        if value:
-            station_map.data[0].mode = "markers+text"
-        else:
-            station_map.data[0].mode = "markers"
-        return station_map
-
-    @app.callback(
-        [
-            Output("graph-station-data", "figure"),
-            Output("time-slider", "disabled"),
+            Output("div-time-slider", "children", allow_duplicate=True),
         ],
         [Input("time-slider", "value")],
+        prevent_initial_call=True,
     )
     def change_xaxis(value: list[int]) -> list[go.Figure | bool]:
         if len(station_data.data) == 0:
-            return station_data, True
+            return station_data, time_slider
         date = station_data.data[0].x[0]
 
         hour_start_limit = 23 if value[0] == 24 else value[0]
@@ -197,5 +180,40 @@ def register_callbacks(app, station_map, station_data, LOCAL_FILE) -> None:
             tzinfo=UTC,
         )
 
+        time_slider.value = [value[0], value[1]]
         station_data.update_layout(xaxis=dict(range=[start_limit, end_limit]))
-        return station_data, False
+        return station_data, time_slider
+
+    @app.callback(
+        [
+            Output("graph-station-map", "figure", allow_duplicate=True),
+            Output("graph-station-data", "figure", allow_duplicate=True),
+            Output("div-time-slider", "children", allow_duplicate=True),
+        ],
+        [Input("clear-all", "n_clicks")],
+        prevent_initial_call=True,
+    )
+    def clear_all(n_clicks: int) -> list[go.Figure | list[int]]:
+        for i, color in enumerate(station_map.data[0].marker.color):
+            if color == PointColor.RED.value:
+                station_map.data[0].marker.color[i] = PointColor.SILVER.value
+        station_data.data = []
+        station_data.layout.xaxis = dict(title="Время")
+        station_data.layout.yaxis = dict()
+
+        time_slider.value = [0, 24]
+        time_slider.disabled = True
+        return station_map, station_data, time_slider
+
+    @app.callback(
+        Output("graph-station-map", "figure", allow_duplicate=True),
+        [Input("hide-show-site", "value")],
+        prevent_initial_call=True,
+    )
+    def hide_show_site(value: bool) -> go.Figure:
+        if value:
+            station_map.data[0].mode = "markers+text"
+        else:
+            station_map.data[0].mode = "markers"
+        checkbox_site.value = value
+        return station_map
