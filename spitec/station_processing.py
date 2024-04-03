@@ -100,7 +100,7 @@ def select_sites_in_circle(
         late = coords[site][Coordinate.lat]
         lone = coords[site][Coordinate.lon]
 
-        distance = get_great_circle_distance(late, lone, late_central, lone_central)
+        distance = get_great_circle_distance(late, lone, late_central, lone_central) / 1000 #км
         if distance <= distance_threshold:
             _add_site_to_dict(circular_coords, site, late, lone)
     return circular_coords

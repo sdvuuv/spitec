@@ -27,7 +27,8 @@ def create_layout(
 ) -> html.Div:
     left_side = create_left_side(station_map, projection_radio, checkbox_site)
     data_tab = create_data_tab(station_data, time_slider)
-    selection_tab_lat_lon = create_selection_tab_lat_lon()
+    tab_lat_lon = create_selection_tab_lat_lon()
+    tab_great_circle_distance = create_selection_tab_great_circle_distance()
 
     size_map = 5
     size_data = 7
@@ -55,7 +56,7 @@ def create_layout(
                                     },
                                 ),
                                 dbc.Tab(
-                                    selection_tab_lat_lon,
+                                    tab_lat_lon,
                                     label="Выборка по широте и долготе",
                                     label_style={"color": "gray"},
                                     active_label_style={
@@ -65,13 +66,14 @@ def create_layout(
                                     style={"text-align": "center"},
                                 ),
                                 dbc.Tab(
-                                    html.Div("great circle"),
+                                    tab_great_circle_distance,
                                     label="Выборка по длине большого круга",
                                     label_style={"color": "gray"},
                                     active_label_style={
                                         "font-weight": "bold",
                                         "color": "#2C3E50",
                                     },
+                                    style={"text-align": "center"},
                                 ),
                             ],
                         ),
@@ -188,7 +190,7 @@ def create_selection_tab_lat_lon() -> list[dbc.Row]:
             dbc.Col(
                 dbc.Button(
                     "Очистить выборку",
-                    id="clear-lat-lon",
+                    id="clear-selection-by-region1",
                     class_name="me-1",
                     style={"margin-top": "20px"},
                 ),
@@ -197,6 +199,77 @@ def create_selection_tab_lat_lon() -> list[dbc.Row]:
         ),
     ]
     return tab_lat_lon
+
+
+def create_selection_tab_great_circle_distance() -> list[dbc.Row]:
+    tab_great_circle_distance = [
+        dbc.Row(
+            [
+                dbc.Label("Дистанция (км)", width=3),
+                dbc.Col(
+                    dbc.Input(
+                        type="number",
+                        id="distance",
+                        min=0,
+                        invalid=False,
+                        style={"width": "97%"},
+                    ),
+                    width=4,
+                    style={"margin-left": "-43px"},
+                ),
+            ],
+            class_name="me-1",
+            style={"margin-top": "30px", "margin-left": "20px"},
+        ),
+        dbc.Row(
+            [
+                dbc.Label("Шир. точки", width=2),
+                dbc.Col(
+                    dbc.Input(
+                        type="number",
+                        id="center-point-lat",
+                        min=-90,
+                        max=90,
+                        invalid=False,
+                    ),
+                    width=4,
+                    style={"margin-left": "5px"},
+                ),
+                dbc.Label("Долг. точки", width=2),
+                dbc.Col(
+                    dbc.Input(
+                        type="number",
+                        id="center-point-lon",
+                        min=-180,
+                        max=180,
+                        invalid=False,
+                    ),
+                    width=4,
+                    style={"margin-left": "-25px"},
+                ),
+            ],
+            class_name="me-1",
+            style={"margin-top": "15px", "margin-left": "40px"},
+        ),
+        dbc.Button(
+            "Применить",
+            id="apply-great-circle-distance",
+            class_name="me-1",
+            style={"margin-top": "20px"},
+        ),
+        dbc.Row(
+            dbc.Col(
+                dbc.Button(
+                    "Очистить выборку",
+                    id="clear-selection-by-region2",
+                    class_name="me-1",
+                    style={"margin-top": "20px"},
+                ),
+                width={"size": 3, "offset": 9},
+            ),
+        ),
+    ]
+    return tab_great_circle_distance
 
 
 def create_left_side(
@@ -241,7 +314,7 @@ def create_left_side(
                 style={
                     "display": "flex",
                     "justify-content": "center",
-                    "fontSize": "18px",
+                    "fontSize": "16px",
                     "margin-top": "20px",
                 },
             ),

@@ -270,12 +270,11 @@ def register_callbacks(
         n: int, min_lat: int, max_lat: int, min_lon: int, max_lon: int
     ) -> list[go.Figure | bool | list[str]]:
         return_value_list = [station_map, False, False, False, False, None]
-        check_lat_lon_value(
-            min_lat, max_lat, [-90, 90], [1, 2], return_value_list
-        )
-        check_lat_lon_value(
-            min_lon, max_lon, [-180, 180], [3, 4], return_value_list
-        )
+
+        check_value(min_lat, 1, return_value_list)
+        check_value(max_lat, 2, return_value_list)
+        check_value(min_lon, 3, return_value_list)
+        check_value(max_lon, 4, return_value_list)
 
         if True in return_value_list:
             return return_value_list
@@ -283,54 +282,85 @@ def register_callbacks(
             sites_by_region = select_sites_by_region(
                 site_coords, min_lat, max_lat, min_lon, max_lon
             )
-            sites, _, _ = get_namelatlon_arrays(sites_by_region)
-            return_value_list[-1] = sites
-            for i, site in enumerate(station_map.data[0].text):
-                if site.lower() in sites:
-                    if (
-                        station_map.data[0].marker.color[i]
-                        == PointColor.SILVER.value
-                    ):
-                        station_map.data[0].marker.color[
-                            i
-                        ] = PointColor.GREEN.value
-                elif (
-                    station_map.data[0].marker.color[i]
-                    == PointColor.GREEN.value
-                ):
-                    station_map.data[0].marker.color[
-                        i
-                    ] = PointColor.SILVER.value
+            change_points_on_map(return_value_list, sites_by_region)
         return_value_list[0] = station_map
         return return_value_list
 
-    def check_lat_lon_value(
-        min_l: int,
-        max_l: int,
-        degree_range: list[int],
-        idx: list[int],
+    def change_points_on_map(
+        return_value_list: list[go.Figure | bool | list[str]],
+        sites_by_region: dict[Site, dict[Coordinate, float]],
+    ) -> None:
+        sites, _, _ = get_namelatlon_arrays(sites_by_region)
+        return_value_list[-1] = sites
+        for i, site in enumerate(station_map.data[0].text):
+            if site.lower() in sites:
+                if (
+                    station_map.data[0].marker.color[i]
+                    == PointColor.SILVER.value
+                ):
+                    station_map.data[0].marker.color[
+                        i
+                    ] = PointColor.GREEN.value
+            elif station_map.data[0].marker.color[i] == PointColor.GREEN.value:
+                station_map.data[0].marker.color[i] = PointColor.SILVER.value
+
+    def check_value(
+        degrees: int,
+        idx: int,
         return_value_list: dict[str, go.Figure | bool],
     ) -> None:
-        if min_l is None or max_l is None:
-            return_value_list[idx[0]] = True
-            return_value_list[idx[1]] = True
-        elif min_l >= max_l:
-            return_value_list[idx[0]] = True
-            return_value_list[idx[1]] = True
-        elif min_l < degree_range[0] or min_l > degree_range[1]:
-            return_value_list[idx[0]] = True
-        elif max_l < degree_range[0] or max_l > degree_range[1]:
-            return_value_list[idx[1]] = True
+        if degrees is None:
+            return_value_list[idx] = True
+
+    @app.callback(
+        [
+            Output("graph-station-map", "figure", allow_duplicate=True),
+            Output("distance", "invalid"),
+            Output("center-point-lat", "invalid"),
+            Output("center-point-lon", "invalid"),
+            Output("data-store", "data", allow_duplicate=True),
+        ],
+        [Input("apply-great-circle-distance", "n_clicks")],
+        [
+            State("distance", "value"),
+            State("center-point-lat", "value"),
+            State("center-point-lon", "value"),
+        ],
+        prevent_initial_call=True,
+    )
+    def apply_great_circle_distance(
+        n: int, distance: int, lat: int, lon: int
+    ) -> list[go.Figure | bool | list[str]]:
+        return_value_list = [station_map, False, False, False, None]
+
+        check_value(distance, 1, return_value_list)
+        check_value(lat, 2, return_value_list)
+        check_value(lon, 3, return_value_list)
+
+        if True in return_value_list:
+            return return_value_list
+        else:
+            central_point = dict()
+            central_point[Coordinate.lat] = lat
+            central_point[Coordinate.lon] = lon
+            sites_by_region = select_sites_in_circle(
+                site_coords, central_point, distance
+            )
+            change_points_on_map(return_value_list, sites_by_region)
+        return return_value_list
 
     @app.callback(
         [
             Output("graph-station-map", "figure", allow_duplicate=True),
             Output("data-store", "data"),
         ],
-        [Input("clear-lat-lon", "n_clicks")],
+        [
+            Input("clear-selection-by-region1", "n_clicks"),
+            Input("clear-selection-by-region2", "n_clicks"),
+        ],
         prevent_initial_call=True,
     )
-    def clear_lat_lon(n: int) -> list[go.Figure | None]:
+    def clear_lat_lon(n1: int, n2: int) -> list[go.Figure | None]:
         for i, color in enumerate(station_map.data[0].marker.color):
             if color == PointColor.GREEN.value:
                 station_map.data[0].marker.color[i] = PointColor.SILVER.value
