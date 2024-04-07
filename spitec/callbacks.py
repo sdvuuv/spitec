@@ -35,9 +35,7 @@ def register_callbacks(
     )
     def update_map_projection(projection_value: ProjectionType) -> go.Figure:
         if projection_value != station_map.layout.geo.projection.type:
-            station_map.update_layout(
-                geo=dict(projection_type=projection_value)
-            )
+            station_map.update_layout(geo=dict(projection_type=projection_value))
         projection_radio.value = projection_value
         return station_map
 
@@ -95,9 +93,7 @@ def register_callbacks(
 
         add_value_yaxis(shift, site_name, number_lines)
 
-    def add_value_yaxis(
-        shift: float, site_name: Site, number_lines: int
-    ) -> None:
+    def add_value_yaxis(shift: float, site_name: Site, number_lines: int) -> None:
         y_tickmode = station_data.layout.yaxis.tickmode
         if y_tickmode is None:
             station_data.layout.yaxis.tickmode = "array"
@@ -106,9 +102,7 @@ def register_callbacks(
         else:
             yaxis_data = {"tickvals": [], "ticktext": []}
             for i, site in enumerate(station_data.layout.yaxis.ticktext):
-                yaxis_data["tickvals"].append(
-                    station_data.layout.yaxis.tickvals[i]
-                )
+                yaxis_data["tickvals"].append(station_data.layout.yaxis.tickvals[i])
                 yaxis_data["ticktext"].append(site)
             yaxis_data["tickvals"].append(shift * number_lines)
             yaxis_data["ticktext"].append(site_name.upper())
@@ -120,9 +114,7 @@ def register_callbacks(
         if data is not None and site_name in data:
             station_map.data[0].marker.color[site_idx] = PointColor.GREEN.value
         else:
-            station_map.data[0].marker.color[
-                site_idx
-            ] = PointColor.SILVER.value
+            station_map.data[0].marker.color[site_idx] = PointColor.SILVER.value
         site_data = dict()
         for i, site in enumerate(station_data.data):
             if site.name.lower() != site_name:
@@ -216,17 +208,10 @@ def register_callbacks(
     def clear_all(n: int, data: NDArray) -> list[go.Figure | dcc.RangeSlider]:
         for i, color in enumerate(station_map.data[0].marker.color):
             if color == PointColor.RED.value:
-                if (
-                    data is not None
-                    and station_map.data[0].text[i].lower() in data
-                ):
-                    station_map.data[0].marker.color[
-                        i
-                    ] = PointColor.GREEN.value
+                if data is not None and station_map.data[0].text[i].lower() in data:
+                    station_map.data[0].marker.color[i] = PointColor.GREEN.value
                 else:
-                    station_map.data[0].marker.color[
-                        i
-                    ] = PointColor.SILVER.value
+                    station_map.data[0].marker.color[i] = PointColor.SILVER.value
         station_data.data = []
         station_data.layout.xaxis = dict(title="Время")
         station_data.layout.yaxis = dict()
@@ -263,13 +248,19 @@ def register_callbacks(
             State("max-lat", "value"),
             State("min-lon", "value"),
             State("max-lon", "value"),
+            State("data-store", "data"),
         ],
         prevent_initial_call=True,
     )
     def apply_selection_by_region(
-        n: int, min_lat: int, max_lat: int, min_lon: int, max_lon: int
+        n: int,
+        min_lat: int,
+        max_lat: int,
+        min_lon: int,
+        max_lon: int,
+        data: list[str] | None,
     ) -> list[go.Figure | bool | list[str]]:
-        return_value_list = [station_map, False, False, False, False, None]
+        return_value_list = [station_map, False, False, False, False, data]
 
         check_value(min_lat, 1, return_value_list)
         check_value(max_lat, 2, return_value_list)
@@ -294,13 +285,8 @@ def register_callbacks(
         return_value_list[-1] = sites
         for i, site in enumerate(station_map.data[0].text):
             if site.lower() in sites:
-                if (
-                    station_map.data[0].marker.color[i]
-                    == PointColor.SILVER.value
-                ):
-                    station_map.data[0].marker.color[
-                        i
-                    ] = PointColor.GREEN.value
+                if station_map.data[0].marker.color[i] == PointColor.SILVER.value:
+                    station_map.data[0].marker.color[i] = PointColor.GREEN.value
             elif station_map.data[0].marker.color[i] == PointColor.GREEN.value:
                 station_map.data[0].marker.color[i] = PointColor.SILVER.value
 
@@ -325,13 +311,18 @@ def register_callbacks(
             State("distance", "value"),
             State("center-point-lat", "value"),
             State("center-point-lon", "value"),
+            State("data-store", "data"),
         ],
         prevent_initial_call=True,
     )
     def apply_great_circle_distance(
-        n: int, distance: int, lat: int, lon: int
+        n: int,
+        distance: int,
+        lat: int,
+        lon: int,
+        data: list[str] | None,
     ) -> list[go.Figure | bool | list[str]]:
-        return_value_list = [station_map, False, False, False, None]
+        return_value_list = [station_map, False, False, False, data]
 
         check_value(distance, 1, return_value_list)
         check_value(lat, 2, return_value_list)
