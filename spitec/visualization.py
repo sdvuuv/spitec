@@ -4,6 +4,10 @@ import dash_bootstrap_components as dbc
 from enum import Enum
 import numpy as np
 from numpy.typing import NDArray
+from .languages import languages
+
+
+language = languages["en"]
 
 
 class ProjectionType(Enum):
@@ -47,7 +51,7 @@ def create_layout(
                             [
                                 dbc.Tab(
                                     data_tab,
-                                    label="Данные",
+                                    label=language["data-tab"]["label"],
                                     tab_style={"marginLeft": "auto"},
                                     label_style={"color": "gray"},
                                     active_label_style={
@@ -57,7 +61,7 @@ def create_layout(
                                 ),
                                 dbc.Tab(
                                     tab_lat_lon,
-                                    label="Выборка по широте и долготе",
+                                    label=language["tab-lat-lon"]["label"],
                                     label_style={"color": "gray"},
                                     active_label_style={
                                         "font-weight": "bold",
@@ -67,7 +71,9 @@ def create_layout(
                                 ),
                                 dbc.Tab(
                                     tab_great_circle_distance,
-                                    label="Выборка по длине большого круга",
+                                    label=language["tab-great-circle-distance"][
+                                        "label"
+                                    ],
                                     label_style={"color": "gray"},
                                     active_label_style={
                                         "font-weight": "bold",
@@ -106,7 +112,9 @@ def create_data_tab(
         ),
         dbc.Row(
             dbc.Col(
-                dbc.Button("Очистить всё", id="clear-all", class_name="me-1")
+                dbc.Button(
+                    language["buttons"]["clear-all"], id="clear-all", class_name="me-1"
+                )
             ),
             style={
                 "margin-top": "20px",
@@ -122,7 +130,7 @@ def create_selection_tab_lat_lon() -> list[dbc.Row]:
     tab_lat_lon = [
         dbc.Row(
             [
-                dbc.Label("Мин. шир.", width=2),
+                dbc.Label(language["tab-lat-lon"]["min-lat"], width=2),
                 dbc.Col(
                     dbc.Input(
                         type="number",
@@ -134,7 +142,7 @@ def create_selection_tab_lat_lon() -> list[dbc.Row]:
                     width=4,
                     style={"margin-left": "-30px"},
                 ),
-                dbc.Label("Макс. шир.", width=2),
+                dbc.Label(language["tab-lat-lon"]["max-lat"], width=2),
                 dbc.Col(
                     dbc.Input(
                         type="number",
@@ -152,7 +160,7 @@ def create_selection_tab_lat_lon() -> list[dbc.Row]:
         ),
         dbc.Row(
             [
-                dbc.Label("Мин. долг.", width=2),
+                dbc.Label(language["tab-lat-lon"]["min-lon"], width=2),
                 dbc.Col(
                     dbc.Input(
                         type="number",
@@ -164,7 +172,7 @@ def create_selection_tab_lat_lon() -> list[dbc.Row]:
                     width=4,
                     style={"margin-left": "-30px"},
                 ),
-                dbc.Label("Макс. долг.", width=2),
+                dbc.Label(language["tab-lat-lon"]["max-lon"], width=2),
                 dbc.Col(
                     dbc.Input(
                         type="number",
@@ -181,7 +189,7 @@ def create_selection_tab_lat_lon() -> list[dbc.Row]:
             style={"margin-top": "15px", "margin-left": "25px"},
         ),
         dbc.Button(
-            "Применить",
+            language["buttons"]["apply-selection-by-region"],
             id="apply-lat-lon",
             class_name="me-1",
             style={"margin-top": "20px"},
@@ -189,7 +197,7 @@ def create_selection_tab_lat_lon() -> list[dbc.Row]:
         dbc.Row(
             dbc.Col(
                 dbc.Button(
-                    "Очистить выборку",
+                    language["buttons"]["clear-selection-by-region"],
                     id="clear-selection-by-region1",
                     class_name="me-1",
                     style={"margin-top": "20px"},
@@ -205,7 +213,7 @@ def create_selection_tab_great_circle_distance() -> list[dbc.Row]:
     tab_great_circle_distance = [
         dbc.Row(
             [
-                dbc.Label("Дистанция (км)", width=3),
+                dbc.Label(language["tab-great-circle-distance"]["distance"], width=3),
                 dbc.Col(
                     dbc.Input(
                         type="number",
@@ -223,7 +231,9 @@ def create_selection_tab_great_circle_distance() -> list[dbc.Row]:
         ),
         dbc.Row(
             [
-                dbc.Label("Шир. точки", width=2),
+                dbc.Label(
+                    language["tab-great-circle-distance"]["center-point-lat"], width=2
+                ),
                 dbc.Col(
                     dbc.Input(
                         type="number",
@@ -235,7 +245,9 @@ def create_selection_tab_great_circle_distance() -> list[dbc.Row]:
                     width=4,
                     style={"margin-left": "5px"},
                 ),
-                dbc.Label("Долг. точки", width=2),
+                dbc.Label(
+                    language["tab-great-circle-distance"]["center-point-lon"], width=2
+                ),
                 dbc.Col(
                     dbc.Input(
                         type="number",
@@ -252,7 +264,7 @@ def create_selection_tab_great_circle_distance() -> list[dbc.Row]:
             style={"margin-top": "15px", "margin-left": "40px"},
         ),
         dbc.Button(
-            "Применить",
+            language["buttons"]["apply-selection-by-region"],
             id="apply-great-circle-distance",
             class_name="me-1",
             style={"margin-top": "20px"},
@@ -260,7 +272,7 @@ def create_selection_tab_great_circle_distance() -> list[dbc.Row]:
         dbc.Row(
             dbc.Col(
                 dbc.Button(
-                    "Очистить выборку",
+                    language["buttons"]["clear-selection-by-region"],
                     id="clear-selection-by-region2",
                     class_name="me-1",
                     style={"margin-top": "20px"},
@@ -282,13 +294,13 @@ def create_left_side(
             [
                 dbc.Col(
                     [
-                        dbc.Button("Загрузить"),
+                        dbc.Button(language["buttons"]["download"]),
                         dbc.Button(
-                            "Открыть",
+                            language["buttons"]["open"],
                             style={"margin-left": "15px"},
                         ),
                         dbc.Button(
-                            "Настройки",
+                            language["buttons"]["settings"],
                             style={"margin-left": "15px"},
                         ),
                     ]
@@ -340,8 +352,8 @@ def create_station_map(
 
     figure = go.Figure(station_map)
     figure.update_layout(
-        title="Карта",
-        title_font=dict(size=28, color="black"),
+        title=language["graph-station-map"]["title"],
+        title_font=dict(size=24, color="black"),
         margin=dict(l=0, t=60, r=0, b=0),
         geo=dict(projection_type=ProjectionType.MERCATOR.value),
     )
@@ -359,7 +371,10 @@ def create_station_map(
 
 def create_projection_radio() -> dbc.RadioItems:
     options = [
-        {"label": projection.value.capitalize(), "value": projection.value}
+        {
+            "label": language["projection-radio"][projection.value],
+            "value": projection.value,
+        }
         for projection in ProjectionType
     ]
     radio_items = dbc.RadioItems(
@@ -375,10 +390,10 @@ def create_station_data() -> go.Figure:
     station_data = go.Figure()
 
     station_data.update_layout(
-        title="Данные",
-        title_font=dict(size=28, color="black"),
+        title=language["data-tab"]["graph-station-data"]["title"],
+        title_font=dict(size=24, color="black"),
         margin=dict(l=0, t=60, r=0, b=0),
-        xaxis=dict(title="Время"),
+        xaxis=dict(title=language["data-tab"]["graph-station-data"]["xaxis"]),
     )
     return station_data
 
@@ -405,6 +420,6 @@ def create_time_slider() -> dcc.RangeSlider:
 
 def create_checkbox_site() -> dbc.Checkbox:
     checkbox = dbc.Checkbox(
-        id="hide-show-site", label="Имена станций", value=True
+        id="hide-show-site", label=language["hide-show-site"], value=True
     )
     return checkbox
