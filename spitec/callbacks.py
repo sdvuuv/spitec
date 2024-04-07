@@ -9,6 +9,8 @@ from .station_processing import (
     select_sites_by_region,
     select_sites_in_circle,
     get_namelatlon_arrays,
+    load_data,
+    get_sites_coords,
 )
 from datetime import datetime, UTC
 import dash
@@ -16,18 +18,25 @@ from dash import html, dcc
 import dash_bootstrap_components as dbc
 from pathlib import Path
 from numpy.typing import NDArray
+from .languages import languages
+import numpy as np
+import json
+
+
+language = languages["en"]
+FILE_FOLDER = Path("data")
+site_coords = None
 
 
 def register_callbacks(
     app: dash.Dash,
-    LOCAL_FILE: Path | str,
-    site_coords: dict[Site, dict[Coordinate, float]],
     station_map: go.Figure,
     station_data: go.Figure,
     projection_radio: dbc.RadioItems,
     time_slider: dcc.RangeSlider,
     checkbox_site: dbc.Checkbox,
 ) -> None:
+
     @app.callback(
         Output("graph-station-map", "figure", allow_duplicate=True),
         [Input("projection-radio", "value")],
@@ -35,7 +44,9 @@ def register_callbacks(
     )
     def update_map_projection(projection_value: ProjectionType) -> go.Figure:
         if projection_value != station_map.layout.geo.projection.type:
-            station_map.update_layout(geo=dict(projection_type=projection_value))
+            station_map.update_layout(
+                geo=dict(projection_type=projection_value)
+            )
         projection_radio.value = projection_value
         return station_map
 
@@ -47,12 +58,16 @@ def register_callbacks(
             Output("div-time-slider", "children", allow_duplicate=True),
         ],
         [Input("graph-station-map", "clickData")],
-        [State("data-store", "data")],
+        [
+            State("site-names-store", "data"),
+            State("local-file-store", "data"),
+        ],
         prevent_initial_call=True,
     )
     def update_station_data(
         clickData: dict[str, list[dict[str, float | str | dict]]],
         data: NDArray,
+        local_file: str,
     ) -> list[go.Figure | None | bool | dcc.RangeSlider]:
         shift = -0.5
 
@@ -64,16 +79,20 @@ def register_callbacks(
                 site_color == PointColor.SILVER.value
                 or site_color == PointColor.GREEN.value
             ):
-                add_line(shift, site_name, site_idx)
+                add_line(shift, site_name, site_idx, local_file)
             elif site_color == PointColor.RED.value:
                 delete_line(shift, site_name, site_idx, data)
         time_slider.disabled = True if len(station_data.data) == 0 else False
         return station_map, None, station_data, time_slider
 
-    def add_line(shift: float, site_name: Site, site_idx: int) -> None:
-        station_map.data[0].marker.color[site_idx] = PointColor.RED.value
+    def add_line(
+        shift: float, site_name: Site, site_idx: int, local_file: str
+    ) -> None:
+        colors = station_map.data[0].marker.color.copy()
+        colors[site_idx] = PointColor.RED.value
+        station_map.data[0].marker.color = colors
 
-        site_data = retrieve_data(LOCAL_FILE, [site_name])
+        site_data = retrieve_data(local_file, [site_name])
         sat = list(site_data[site_name].keys())[0]
         dataproduct = DataProducts.dtec_2_10
 
@@ -93,7 +112,9 @@ def register_callbacks(
 
         add_value_yaxis(shift, site_name, number_lines)
 
-    def add_value_yaxis(shift: float, site_name: Site, number_lines: int) -> None:
+    def add_value_yaxis(
+        shift: float, site_name: Site, number_lines: int
+    ) -> None:
         y_tickmode = station_data.layout.yaxis.tickmode
         if y_tickmode is None:
             station_data.layout.yaxis.tickmode = "array"
@@ -102,7 +123,9 @@ def register_callbacks(
         else:
             yaxis_data = {"tickvals": [], "ticktext": []}
             for i, site in enumerate(station_data.layout.yaxis.ticktext):
-                yaxis_data["tickvals"].append(station_data.layout.yaxis.tickvals[i])
+                yaxis_data["tickvals"].append(
+                    station_data.layout.yaxis.tickvals[i]
+                )
                 yaxis_data["ticktext"].append(site)
             yaxis_data["tickvals"].append(shift * number_lines)
             yaxis_data["ticktext"].append(site_name.upper())
@@ -111,10 +134,13 @@ def register_callbacks(
     def delete_line(
         shift: float, site_name: Site, site_idx: int, data: NDArray
     ) -> None:
+        colors = station_map.data[0].marker.color.copy()
         if data is not None and site_name in data:
-            station_map.data[0].marker.color[site_idx] = PointColor.GREEN.value
+            colors[site_idx] = PointColor.GREEN.value
         else:
-            station_map.data[0].marker.color[site_idx] = PointColor.SILVER.value
+            colors[site_idx] = PointColor.SILVER.value
+        station_map.data[0].marker.color = colors
+
         site_data = dict()
         for i, site in enumerate(station_data.data):
             if site.name.lower() != site_name:
@@ -202,23 +228,33 @@ def register_callbacks(
             Output("div-time-slider", "children", allow_duplicate=True),
         ],
         [Input("clear-all", "n_clicks")],
-        [State("data-store", "data")],
+        [State("site-names-store", "data")],
         prevent_initial_call=True,
     )
     def clear_all(n: int, data: NDArray) -> list[go.Figure | dcc.RangeSlider]:
-        for i, color in enumerate(station_map.data[0].marker.color):
+        if station_map.data[0].marker.color is None:
+            return station_map, station_data, time_slider
+        colors = station_map.data[0].marker.color.copy()
+        for i, color in enumerate(colors):
             if color == PointColor.RED.value:
-                if data is not None and station_map.data[0].text[i].lower() in data:
-                    station_map.data[0].marker.color[i] = PointColor.GREEN.value
+                if (
+                    data is not None
+                    and station_map.data[0].text[i].lower() in data
+                ):
+                    colors[i] = PointColor.GREEN.value
                 else:
-                    station_map.data[0].marker.color[i] = PointColor.SILVER.value
+                    colors[i] = PointColor.SILVER.value
+        station_map.data[0].marker.color = colors
+        clear_all_graphs()
+        return station_map, station_data, time_slider
+
+    def clear_all_graphs() -> None:
         station_data.data = []
         station_data.layout.xaxis = dict(title="Время")
         station_data.layout.yaxis = dict()
 
         time_slider.value = [0, 24]
         time_slider.disabled = True
-        return station_map, station_data, time_slider
 
     @app.callback(
         Output("graph-station-map", "figure", allow_duplicate=True),
@@ -240,7 +276,7 @@ def register_callbacks(
             Output("max-lat", "invalid"),
             Output("min-lon", "invalid"),
             Output("max-lon", "invalid"),
-            Output("data-store", "data", allow_duplicate=True),
+            Output("site-names-store", "data", allow_duplicate=True),
         ],
         [Input("apply-lat-lon", "n_clicks")],
         [
@@ -248,7 +284,7 @@ def register_callbacks(
             State("max-lat", "value"),
             State("min-lon", "value"),
             State("max-lon", "value"),
-            State("data-store", "data"),
+            State("site-names-store", "data"),
         ],
         prevent_initial_call=True,
     )
@@ -258,7 +294,7 @@ def register_callbacks(
         max_lat: int,
         min_lon: int,
         max_lon: int,
-        data: list[str] | None,
+        data: list[str],
     ) -> list[go.Figure | bool | list[str]]:
         return_value_list = [station_map, False, False, False, False, data]
 
@@ -267,7 +303,7 @@ def register_callbacks(
         check_value(min_lon, 3, return_value_list)
         check_value(max_lon, 4, return_value_list)
 
-        if True in return_value_list:
+        if True in return_value_list or site_coords is None:
             return return_value_list
         else:
             sites_by_region = select_sites_by_region(
@@ -283,12 +319,15 @@ def register_callbacks(
     ) -> None:
         sites, _, _ = get_namelatlon_arrays(sites_by_region)
         return_value_list[-1] = sites
+
+        colors = station_map.data[0].marker.color.copy()
         for i, site in enumerate(station_map.data[0].text):
             if site.lower() in sites:
-                if station_map.data[0].marker.color[i] == PointColor.SILVER.value:
-                    station_map.data[0].marker.color[i] = PointColor.GREEN.value
-            elif station_map.data[0].marker.color[i] == PointColor.GREEN.value:
-                station_map.data[0].marker.color[i] = PointColor.SILVER.value
+                if colors[i] == PointColor.SILVER.value:
+                    colors[i] = PointColor.GREEN.value
+            elif colors[i] == PointColor.GREEN.value:
+                colors[i] = PointColor.SILVER.value
+        station_map.data[0].marker.color = colors
 
     def check_value(
         degrees: int,
@@ -304,14 +343,14 @@ def register_callbacks(
             Output("distance", "invalid"),
             Output("center-point-lat", "invalid"),
             Output("center-point-lon", "invalid"),
-            Output("data-store", "data", allow_duplicate=True),
+            Output("site-names-store", "data", allow_duplicate=True),
         ],
         [Input("apply-great-circle-distance", "n_clicks")],
         [
             State("distance", "value"),
             State("center-point-lat", "value"),
             State("center-point-lon", "value"),
-            State("data-store", "data"),
+            State("site-names-store", "data"),
         ],
         prevent_initial_call=True,
     )
@@ -320,7 +359,7 @@ def register_callbacks(
         distance: int,
         lat: int,
         lon: int,
-        data: list[str] | None,
+        data: list[str],
     ) -> list[go.Figure | bool | list[str]]:
         return_value_list = [station_map, False, False, False, data]
 
@@ -328,7 +367,7 @@ def register_callbacks(
         check_value(lat, 2, return_value_list)
         check_value(lon, 3, return_value_list)
 
-        if True in return_value_list:
+        if True in return_value_list or site_coords is None:
             return return_value_list
         else:
             central_point = dict()
@@ -343,7 +382,7 @@ def register_callbacks(
     @app.callback(
         [
             Output("graph-station-map", "figure", allow_duplicate=True),
-            Output("data-store", "data"),
+            Output("site-names-store", "data", allow_duplicate=True),
         ],
         [
             Input("clear-selection-by-region1", "n_clicks"),
@@ -351,8 +390,121 @@ def register_callbacks(
         ],
         prevent_initial_call=True,
     )
-    def clear_lat_lon(n1: int, n2: int) -> list[go.Figure | None]:
-        for i, color in enumerate(station_map.data[0].marker.color):
-            if color == PointColor.GREEN.value:
-                station_map.data[0].marker.color[i] = PointColor.SILVER.value
+    def clear_selection_by_region(n1: int, n2: int) -> list[go.Figure | None]:
+        if station_map.data[0].marker.color is not None:
+            colors = station_map.data[0].marker.color.copy()
+            for i, color in enumerate(colors):
+                if color == PointColor.GREEN.value:
+                    colors[i] = PointColor.SILVER.value
+            station_map.data[0].marker.color = colors
         return station_map, None
+
+    @app.callback(
+        [
+            Output("download-window", "is_open"),
+            Output("downloaded", "style", allow_duplicate=True),
+            Output("downloaded", "children", allow_duplicate=True),
+        ],
+        [Input("download", "n_clicks")],
+        [State("download-window", "is_open")],
+        prevent_initial_call=True,
+    )
+    def open_close_download_window(
+        n1: int, is_open: bool
+    ) -> list[bool | dict[str, str] | str]:
+        style = {"visibility": "hidden"}
+        return not is_open, style, ""
+
+    @app.callback(
+        [
+            Output("downloaded", "style", allow_duplicate=True),
+            Output("downloaded", "children", allow_duplicate=True),
+        ],
+        [Input("download-file", "n_clicks")],
+        [State("date-selection", "date")],
+        prevent_initial_call=True,
+    )
+    def download_file(n1: int, date: str) -> dict[str, str]:
+        text = language["download_window"]["successаfuly"]
+        color = "green"
+        if date is None:
+            text = language["download_window"]["unsuccessаfuly"]
+        else:
+            if not FILE_FOLDER.exists():
+                FILE_FOLDER.mkdir()
+            local_file = FILE_FOLDER / (date + ".h5")
+            if local_file.exists():
+                text = language["download_window"]["repeat-action"]
+            else:
+                local_file.touch()
+                if not load_data(date, local_file):
+                    text = language["download_window"]["error"]
+                    local_file.unlink()
+        if text != language["download_window"]["successаfuly"]:
+            color = "red"
+        style = {
+            "text-align": "center",
+            "margin-top": "20px",
+            "color": color,
+        }
+        return style, text
+
+    @app.callback(
+        [
+            Output("open-window", "is_open", allow_duplicate=True),
+            Output("select-file", "options"),
+        ],
+        [Input("open", "n_clicks")],
+        [State("open-window", "is_open")],
+        prevent_initial_call=True,
+    )
+    def open_close_open_window(
+        n1: int, is_open: bool
+    ) -> list[bool | list[dict[str, str]]]:
+        options = []
+        if FILE_FOLDER.exists():
+            for file_path in FILE_FOLDER.iterdir():
+                if file_path.is_file():
+                    options.append(
+                        {"label": file_path.name, "value": file_path.name}
+                    )
+        return not is_open, options
+
+    @app.callback(
+        [
+            Output("open-window", "is_open"),
+            Output("graph-station-map", "figure", allow_duplicate=True),
+            Output("local-file-store", "data"),
+            Output("graph-station-data", "figure", allow_duplicate=True),
+            Output("div-time-slider", "children", allow_duplicate=True),
+            Output("site-names-store", "data"),
+        ],
+        [Input("open-file", "n_clicks")],
+        [State("select-file", "value")],
+        prevent_initial_call=True,
+    )
+    def open_close_open_window(
+        n1: int, value: str
+    ) -> list[bool | go.Figure | str | dcc.RangeSlider | None]:
+        global site_coords
+        local_file = FILE_FOLDER / value
+        site_coords = get_sites_coords(local_file)
+        site_array, lat_array, lon_array = get_namelatlon_arrays(site_coords)
+
+        colors = np.array([PointColor.SILVER.value] * site_array.shape[0])
+
+        station_map.data[0].lat = lat_array
+        station_map.data[0].lon = lon_array
+        station_map.data[0].text = [site.upper() for site in site_array]
+        station_map.data[0].marker.color = colors
+
+        clear_all_graphs()
+
+        return (
+            False,
+            station_map,
+            str(local_file),
+            station_data,
+            time_slider,
+            None,
+        )

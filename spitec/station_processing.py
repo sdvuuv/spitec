@@ -4,7 +4,11 @@ from enum import Enum
 import numpy as np
 from numpy.typing import NDArray
 from numpy import pi, sin, cos, arccos
+import requests
+import sys
 
+
+DOWNLOAD_URL = "https://simurg.space/gen_file?data=obs&date="
 RE_meters = 6371000.0
 
 
@@ -15,6 +19,35 @@ class Site(str):
 class Coordinate(Enum):
     lat = "latitude"
     lon = "longitude"
+
+
+def load_data(filename: str, local_file: str | Path) -> bool:
+    url = DOWNLOAD_URL + filename
+    with open(local_file, "wb") as f:
+        print("Downloading %s" % local_file)
+        response = requests.get(url, stream=True)
+        if response.status_code != 200:
+            return False
+        total_length = response.headers.get("content-length")
+
+        if total_length is None:
+            f.write(response.content)
+        else:
+            dl = 0
+            previous = 0
+            total_length = int(total_length)
+            for chunk in response.iter_content(chunk_size=4096):
+                dl += len(chunk)
+                f.write(chunk)
+                done = int(50 * dl / total_length)
+                if done > previous:
+                    sys.stdout.write(
+                        "\r[%s%s]" % ("=" * done, " " * (50 - done))
+                    )
+                    sys.stdout.flush()
+                previous = done
+            sys.stdout.write("\n")
+    return True
 
 
 def get_sites_coords(
@@ -34,8 +67,12 @@ def get_namelatlon_arrays(
     site_coords: dict[Site, dict[Coordinate, float]]
 ) -> tuple[NDArray]:
     site_names = np.array(list(site_coords.keys()))
-    latitudes = [np.degrees(site_coords[name][Coordinate.lat]) for name in site_names]
-    longitudes = [np.degrees(site_coords[name][Coordinate.lon]) for name in site_names]
+    latitudes = [
+        np.degrees(site_coords[name][Coordinate.lat]) for name in site_names
+    ]
+    longitudes = [
+        np.degrees(site_coords[name][Coordinate.lon]) for name in site_names
+    ]
 
     latitudes_array = np.array(latitudes)
     longitudes_array = np.array(longitudes)
@@ -58,7 +95,9 @@ def select_sites_by_region(
         site_lat = np.degrees(site_lat_radians)
         site_lon = np.degrees(site_lon_radians)
         if min_lat < site_lat < max_lat and min_lon < site_lon < max_lon:
-            _add_site_to_dict(regional_coords, site, site_lat_radians, site_lon_radians)
+            _add_site_to_dict(
+                regional_coords, site, site_lat_radians, site_lon_radians
+            )
     return regional_coords
 
 
@@ -100,7 +139,10 @@ def select_sites_in_circle(
         late = coords[site][Coordinate.lat]
         lone = coords[site][Coordinate.lon]
 
-        distance = get_great_circle_distance(late, lone, late_central, lone_central) / 1000 #км
+        distance = (
+            get_great_circle_distance(late, lone, late_central, lone_central)
+            / 1000
+        )  # км
         if distance <= distance_threshold:
             _add_site_to_dict(circular_coords, site, late, lone)
     return circular_coords

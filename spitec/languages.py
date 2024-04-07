@@ -37,6 +37,16 @@ languages = {
             "center-point-lat": "Шир. точки",
             "center-point-lon": "Долг. точки",
         },
+        "download_window": {
+            "label": "Дата",
+            "successаfuly": "Файд загружен",
+            "unsuccessаfuly": "Дата введена неверно",
+            "repeat-action": "Этот файл уже загружен",
+            "error": "Данный файл не существует",
+        },
+        "open_window": {
+            "label": "Файл",
+        },
     },
     "en": {
         "buttons": {
@@ -46,6 +56,7 @@ languages = {
             "clear-all": "Сlear all",
             "apply-selection-by-region": "Apply",
             "clear-selection-by-region": "Clear selection",
+            "download-file": "Download",
         },
         "graph-station-map": {
             "title": "Map",
@@ -75,6 +86,16 @@ languages = {
             "distance": "Distance (km)",
             "center-point-lat": "Lat. point",
             "center-point-lon": "Lon. point",
+        },
+        "download_window": {
+            "label": "Date",
+            "successаfuly": "File downloaded",
+            "unsuccessаfuly": "The date is entered incorrectly",
+            "repeat-action": "This file has already been downloaded",
+            "error": "This file does not exist",
+        },
+        "open_window": {
+            "label": "File",
         },
     },
 }

@@ -5,6 +5,7 @@ from enum import Enum
 import numpy as np
 from numpy.typing import NDArray
 from .languages import languages
+from datetime import datetime, date, timedelta
 
 
 language = languages["en"]
@@ -38,7 +39,8 @@ def create_layout(
     size_data = 7
     layout = html.Div(
         [
-            dcc.Store(id="data-store", storage_type="session"),
+            dcc.Store(id="site-names-store", storage_type="session"),
+            dcc.Store(id="local-file-store", storage_type="session"),
             dbc.Row(
                 [
                     dbc.Col(
@@ -71,9 +73,9 @@ def create_layout(
                                 ),
                                 dbc.Tab(
                                     tab_great_circle_distance,
-                                    label=language["tab-great-circle-distance"][
-                                        "label"
-                                    ],
+                                    label=language[
+                                        "tab-great-circle-distance"
+                                    ]["label"],
                                     label_style={"color": "gray"},
                                     active_label_style={
                                         "font-weight": "bold",
@@ -98,6 +100,225 @@ def create_layout(
     return layout
 
 
+def create_left_side(
+    station_map: go.Figure,
+    projection_radio: dbc.RadioItems,
+    checkbox_site: dbc.Checkbox,
+) -> list[dbc.Row]:
+    download_window = create_download_window()
+    open_window = create_open_window()
+    left_side = [
+        dbc.Row(
+            [
+                dbc.Col(
+                    [
+                        download_window,
+                        html.Div(
+                            open_window,
+                            style={"margin-left": "15px"},
+                        ),
+                        html.Div(
+                            dbc.Button(
+                                language["buttons"]["settings"],
+                                id="settings",
+                            ),
+                            style={"margin-left": "15px"},
+                        ),
+                    ],
+                    style={"display": "flex", "justify-content": "flex-start"},
+                ),
+            ],
+            className="me-1",
+        ),
+        dbc.Row(
+            dcc.Graph(id="graph-station-map", figure=station_map),
+            style={"margin-top": "30px"},
+        ),
+        dbc.Row(
+            html.Div(projection_radio),
+            style={
+                "margin-top": "30px",
+                "text-align": "center",
+                "fontSize": "18px",
+            },
+        ),
+        dbc.Row(
+            html.Div(
+                checkbox_site,
+                style={
+                    "display": "flex",
+                    "justify-content": "center",
+                    "fontSize": "16px",
+                    "margin-top": "20px",
+                },
+            ),
+        ),
+    ]
+    return left_side
+
+
+def create_download_window() -> html.Div:
+    download_window = html.Div(
+        [
+            dbc.Button(language["buttons"]["download"], id="download"),
+            dbc.Modal(
+                [
+                    dbc.ModalHeader(
+                        dbc.ModalTitle(language["buttons"]["download"])
+                    ),
+                    dbc.ModalBody(
+                        [
+                            dbc.Label(
+                                language["download_window"]["label"],
+                                style={"font-size": "18px"},
+                            ),
+                            dcc.DatePickerSingle(
+                                id="date-selection",
+                                min_date_allowed=date(1998, 1, 1),
+                                max_date_allowed=datetime.now()
+                                - timedelta(days=1),
+                                display_format="YYYY-MM-DD",
+                                placeholder="YYYY-MM-DD",
+                                date=datetime.now().strftime("%Y-%m-%d"),
+                                style={"margin-left": "15px"},
+                            ),
+                            html.Div(
+                                dbc.Button(
+                                    language["buttons"]["download"],
+                                    id="download-file",
+                                    className="me-1",
+                                ),
+                                style={
+                                    "text-align": "center",
+                                    "margin-top": "20px",
+                                },
+                            ),
+                            html.Div(
+                                "",
+                                id="downloaded",
+                                style={
+                                    "visibility": "hidden",
+                                },
+                            ),
+                        ]
+                    ),
+                ],
+                id="download-window",
+                is_open=False,
+            ),
+        ]
+    )
+    return download_window
+
+
+def create_open_window() -> html.Div:
+    open_window = html.Div(
+        [
+            dbc.Button(language["buttons"]["open"], id="open"),
+            dbc.Modal(
+                [
+                    dbc.ModalHeader(
+                        dbc.ModalTitle(language["buttons"]["open"])
+                    ),
+                    dbc.ModalBody(
+                        [
+                            html.Div(
+                                [
+                                    dbc.Label(
+                                        language["open_window"]["label"],
+                                        style={
+                                            "font-size": "18px",
+                                            "margin-top": "5px",
+                                        },
+                                    ),
+                                    dbc.Select(
+                                        id="select-file",
+                                        options=[],
+                                        style={
+                                            "width": "50%",
+                                            "margin-left": "15px",
+                                        },
+                                    ),
+                                ],
+                                style={
+                                    "display": "flex",
+                                    "justify-content": "flex-start",
+                                },
+                            ),
+                            html.Div(
+                                dbc.Button(
+                                    language["buttons"]["open"],
+                                    id="open-file",
+                                    className="me-1",
+                                ),
+                                style={
+                                    "text-align": "center",
+                                    "margin-top": "20px",
+                                },
+                            ),
+                        ]
+                    ),
+                ],
+                id="open-window",
+                is_open=False,
+            ),
+        ]
+    )
+    return open_window
+
+
+def create_station_map() -> go.Figure:
+    station_map = go.Scattergeo(
+        mode="markers+text",
+        marker=dict(size=8, line=dict(color="gray", width=1)),
+        hoverlabel=dict(bgcolor="white"),
+        textposition="top center",
+        hoverinfo="lat+lon",
+    )
+
+    figure = go.Figure(station_map)
+    figure.update_layout(
+        title=language["graph-station-map"]["title"],
+        title_font=dict(size=24, color="black"),
+        margin=dict(l=0, t=60, r=0, b=0),
+        geo=dict(projection_type=ProjectionType.MERCATOR.value),
+    )
+    figure.update_geos(
+        landcolor="white",
+        # landcolor="LightGreen",
+        # showocean=True,
+        # oceancolor="LightBlue",
+        # showcountries=True,
+        # countrycolor="Black",
+    )
+
+    return figure
+
+
+def create_projection_radio() -> dbc.RadioItems:
+    options = [
+        {
+            "label": language["projection-radio"][projection.value],
+            "value": projection.value,
+        }
+        for projection in ProjectionType
+    ]
+    radio_items = dbc.RadioItems(
+        options=options,
+        id="projection-radio",
+        inline=True,
+        value=ProjectionType.MERCATOR.value,
+    )
+    return radio_items
+
+
+def create_checkbox_site() -> dbc.Checkbox:
+    checkbox = dbc.Checkbox(
+        id="hide-show-site", label=language["hide-show-site"], value=True
+    )
+    return checkbox
+
+
 def create_data_tab(
     station_data: go.Figure, time_slider: dcc.RangeSlider
 ) -> list[dbc.Row]:
@@ -113,7 +334,9 @@ def create_data_tab(
         dbc.Row(
             dbc.Col(
                 dbc.Button(
-                    language["buttons"]["clear-all"], id="clear-all", class_name="me-1"
+                    language["buttons"]["clear-all"],
+                    id="clear-all",
+                    class_name="me-1",
                 )
             ),
             style={
@@ -124,6 +347,38 @@ def create_data_tab(
         ),
     ]
     return data_tab
+
+
+def create_station_data() -> go.Figure:
+    station_data = go.Figure()
+
+    station_data.update_layout(
+        title=language["data-tab"]["graph-station-data"]["title"],
+        title_font=dict(size=24, color="black"),
+        margin=dict(l=0, t=60, r=0, b=0),
+        xaxis=dict(title=language["data-tab"]["graph-station-data"]["xaxis"]),
+    )
+    return station_data
+
+
+def create_time_slider() -> dcc.RangeSlider:
+    marks = {i: f"{i:02d}:00" if i % 3 == 0 else "" for i in range(25)}
+    time_slider = dcc.RangeSlider(
+        id="time-slider",
+        min=0,
+        max=24,
+        step=1,
+        marks=marks,
+        value=[0, 24],
+        allowCross=False,
+        tooltip={
+            "placement": "top",
+            "style": {"fontSize": "18px"},
+            "template": "{value}:00",
+        },
+        disabled=True,
+    )
+    return time_slider
 
 
 def create_selection_tab_lat_lon() -> list[dbc.Row]:
@@ -213,7 +468,9 @@ def create_selection_tab_great_circle_distance() -> list[dbc.Row]:
     tab_great_circle_distance = [
         dbc.Row(
             [
-                dbc.Label(language["tab-great-circle-distance"]["distance"], width=3),
+                dbc.Label(
+                    language["tab-great-circle-distance"]["distance"], width=3
+                ),
                 dbc.Col(
                     dbc.Input(
                         type="number",
@@ -232,7 +489,8 @@ def create_selection_tab_great_circle_distance() -> list[dbc.Row]:
         dbc.Row(
             [
                 dbc.Label(
-                    language["tab-great-circle-distance"]["center-point-lat"], width=2
+                    language["tab-great-circle-distance"]["center-point-lat"],
+                    width=2,
                 ),
                 dbc.Col(
                     dbc.Input(
@@ -246,7 +504,8 @@ def create_selection_tab_great_circle_distance() -> list[dbc.Row]:
                     style={"margin-left": "5px"},
                 ),
                 dbc.Label(
-                    language["tab-great-circle-distance"]["center-point-lon"], width=2
+                    language["tab-great-circle-distance"]["center-point-lon"],
+                    width=2,
                 ),
                 dbc.Col(
                     dbc.Input(
@@ -282,144 +541,3 @@ def create_selection_tab_great_circle_distance() -> list[dbc.Row]:
         ),
     ]
     return tab_great_circle_distance
-
-
-def create_left_side(
-    station_map: go.Figure,
-    projection_radio: dbc.RadioItems,
-    checkbox_site: dbc.Checkbox,
-) -> list[dbc.Row]:
-    left_side = [
-        dbc.Row(
-            [
-                dbc.Col(
-                    [
-                        dbc.Button(language["buttons"]["download"]),
-                        dbc.Button(
-                            language["buttons"]["open"],
-                            style={"margin-left": "15px"},
-                        ),
-                        dbc.Button(
-                            language["buttons"]["settings"],
-                            style={"margin-left": "15px"},
-                        ),
-                    ]
-                ),
-            ],
-            className="me-1",
-        ),
-        dbc.Row(
-            dcc.Graph(id="graph-station-map", figure=station_map),
-            style={"margin-top": "30px"},
-        ),
-        dbc.Row(
-            html.Div(projection_radio),
-            style={
-                "margin-top": "30px",
-                "text-align": "center",
-                "fontSize": "18px",
-            },
-        ),
-        dbc.Row(
-            html.Div(
-                checkbox_site,
-                style={
-                    "display": "flex",
-                    "justify-content": "center",
-                    "fontSize": "16px",
-                    "margin-top": "20px",
-                },
-            ),
-        ),
-    ]
-    return left_side
-
-
-def create_station_map(
-    site_names: NDArray, latitudes_array: NDArray, longitudes_array: NDArray
-) -> go.Figure:
-    colors = np.array([PointColor.SILVER.value] * site_names.shape[0])
-    station_map = go.Scattergeo(
-        lat=latitudes_array,
-        lon=longitudes_array,
-        text=[site.upper() for site in site_names],
-        mode="markers+text",
-        marker=dict(size=8, color=colors, line=dict(color="gray", width=1)),
-        hoverlabel=dict(bgcolor="white"),
-        textposition="top center",
-        hoverinfo="lat+lon",
-    )
-
-    figure = go.Figure(station_map)
-    figure.update_layout(
-        title=language["graph-station-map"]["title"],
-        title_font=dict(size=24, color="black"),
-        margin=dict(l=0, t=60, r=0, b=0),
-        geo=dict(projection_type=ProjectionType.MERCATOR.value),
-    )
-    figure.update_geos(
-        landcolor="white",
-        # landcolor="LightGreen",
-        # showocean=True,
-        # oceancolor="LightBlue",
-        # showcountries=True,
-        # countrycolor="Black",
-    )
-
-    return figure
-
-
-def create_projection_radio() -> dbc.RadioItems:
-    options = [
-        {
-            "label": language["projection-radio"][projection.value],
-            "value": projection.value,
-        }
-        for projection in ProjectionType
-    ]
-    radio_items = dbc.RadioItems(
-        options=options,
-        id="projection-radio",
-        inline=True,
-        value=ProjectionType.MERCATOR.value,
-    )
-    return radio_items
-
-
-def create_station_data() -> go.Figure:
-    station_data = go.Figure()
-
-    station_data.update_layout(
-        title=language["data-tab"]["graph-station-data"]["title"],
-        title_font=dict(size=24, color="black"),
-        margin=dict(l=0, t=60, r=0, b=0),
-        xaxis=dict(title=language["data-tab"]["graph-station-data"]["xaxis"]),
-    )
-    return station_data
-
-
-def create_time_slider() -> dcc.RangeSlider:
-    marks = {i: f"{i:02d}:00" if i % 3 == 0 else "" for i in range(25)}
-    time_slider = dcc.RangeSlider(
-        id="time-slider",
-        min=0,
-        max=24,
-        step=1,
-        marks=marks,
-        value=[0, 24],
-        allowCross=False,
-        tooltip={
-            "placement": "top",
-            "style": {"fontSize": "18px"},
-            "template": "{value}:00",
-        },
-        disabled=True,
-    )
-    return time_slider
-
-
-def create_checkbox_site() -> dbc.Checkbox:
-    checkbox = dbc.Checkbox(
-        id="hide-show-site", label=language["hide-show-site"], value=True
-    )
-    return checkbox
