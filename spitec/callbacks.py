@@ -3,7 +3,7 @@ import plotly.graph_objects as go
 from .visualization import PointColor, ProjectionType
 from .data_processing import Sat, retrieve_data
 from .data_products import DataProduct, DataProducts
-from .station_processing import (
+from .site_processing import (
     Site,
     Coordinate,
     select_sites_by_region,
@@ -20,7 +20,6 @@ from pathlib import Path
 from numpy.typing import NDArray
 from .languages import languages
 import numpy as np
-import json
 
 
 language = languages["en"]
@@ -30,41 +29,41 @@ site_coords = None
 
 def register_callbacks(
     app: dash.Dash,
-    station_map: go.Figure,
-    station_data: go.Figure,
+    site_map: go.Figure,
+    site_data: go.Figure,
     projection_radio: dbc.RadioItems,
     time_slider: dcc.RangeSlider,
     checkbox_site: dbc.Checkbox,
 ) -> None:
 
     @app.callback(
-        Output("graph-station-map", "figure", allow_duplicate=True),
+        Output("graph-site-map", "figure", allow_duplicate=True),
         [Input("projection-radio", "value")],
         prevent_initial_call=True,
     )
     def update_map_projection(projection_value: ProjectionType) -> go.Figure:
-        if projection_value != station_map.layout.geo.projection.type:
-            station_map.update_layout(
+        if projection_value != site_map.layout.geo.projection.type:
+            site_map.update_layout(
                 geo=dict(projection_type=projection_value)
             )
         projection_radio.value = projection_value
-        return station_map
+        return site_map
 
     @app.callback(
         [
-            Output("graph-station-map", "figure", allow_duplicate=True),
-            Output("graph-station-map", "clickData"),
-            Output("graph-station-data", "figure", allow_duplicate=True),
+            Output("graph-site-map", "figure", allow_duplicate=True),
+            Output("graph-site-map", "clickData"),
+            Output("graph-site-data", "figure", allow_duplicate=True),
             Output("div-time-slider", "children", allow_duplicate=True),
         ],
-        [Input("graph-station-map", "clickData")],
+        [Input("graph-site-map", "clickData")],
         [
             State("site-names-store", "data"),
             State("local-file-store", "data"),
         ],
         prevent_initial_call=True,
     )
-    def update_station_data(
+    def update_site_data(
         clickData: dict[str, list[dict[str, float | str | dict]]],
         data: NDArray,
         local_file: str,
@@ -74,7 +73,7 @@ def register_callbacks(
         if clickData is not None:
             site_name = clickData["points"][0]["text"].lower()
             site_idx = clickData["points"][0]["pointIndex"]
-            site_color = station_map.data[0].marker.color[site_idx]
+            site_color = site_map.data[0].marker.color[site_idx]
             if (
                 site_color == PointColor.SILVER.value
                 or site_color == PointColor.GREEN.value
@@ -82,26 +81,26 @@ def register_callbacks(
                 add_line(shift, site_name, site_idx, local_file)
             elif site_color == PointColor.RED.value:
                 delete_line(shift, site_name, site_idx, data)
-        time_slider.disabled = True if len(station_data.data) == 0 else False
-        return station_map, None, station_data, time_slider
+        time_slider.disabled = True if len(site_data.data) == 0 else False
+        return site_map, None, site_data, time_slider
 
     def add_line(
         shift: float, site_name: Site, site_idx: int, local_file: str
     ) -> None:
-        colors = station_map.data[0].marker.color.copy()
+        colors = site_map.data[0].marker.color.copy()
         colors[site_idx] = PointColor.RED.value
-        station_map.data[0].marker.color = colors
+        site_map.data[0].marker.color = colors
 
-        site_data = retrieve_data(local_file, [site_name])
-        sat = list(site_data[site_name].keys())[0]
+        site_data_tmp = retrieve_data(local_file, [site_name])
+        sat = list(site_data_tmp[site_name].keys())[0]
         dataproduct = DataProducts.dtec_2_10
 
-        vals = site_data[site_name][sat][dataproduct]
-        times = site_data[site_name][sat][DataProducts.time]
+        vals = site_data_tmp[site_name][sat][dataproduct]
+        times = site_data_tmp[site_name][sat][DataProducts.time]
 
-        number_lines = len(station_data.data)
+        number_lines = len(site_data.data)
 
-        station_data.add_trace(
+        site_data.add_trace(
             go.Scatter(
                 x=times,
                 y=vals + shift * number_lines,
@@ -115,16 +114,16 @@ def register_callbacks(
     def add_value_yaxis(
         shift: float, site_name: Site, number_lines: int
     ) -> None:
-        y_tickmode = station_data.layout.yaxis.tickmode
+        y_tickmode = site_data.layout.yaxis.tickmode
         if y_tickmode is None:
-            station_data.layout.yaxis.tickmode = "array"
-            station_data.layout.yaxis.tickvals = [shift * number_lines]
-            station_data.layout.yaxis.ticktext = [site_name.upper()]
+            site_data.layout.yaxis.tickmode = "array"
+            site_data.layout.yaxis.tickvals = [shift * number_lines]
+            site_data.layout.yaxis.ticktext = [site_name.upper()]
         else:
             yaxis_data = {"tickvals": [], "ticktext": []}
-            for i, site in enumerate(station_data.layout.yaxis.ticktext):
+            for i, site in enumerate(site_data.layout.yaxis.ticktext):
                 yaxis_data["tickvals"].append(
-                    station_data.layout.yaxis.tickvals[i]
+                    site_data.layout.yaxis.tickvals[i]
                 )
                 yaxis_data["ticktext"].append(site)
             yaxis_data["tickvals"].append(shift * number_lines)
@@ -134,25 +133,25 @@ def register_callbacks(
     def delete_line(
         shift: float, site_name: Site, site_idx: int, data: NDArray
     ) -> None:
-        colors = station_map.data[0].marker.color.copy()
+        colors = site_map.data[0].marker.color.copy()
         if data is not None and site_name in data:
             colors[site_idx] = PointColor.GREEN.value
         else:
             colors[site_idx] = PointColor.SILVER.value
-        station_map.data[0].marker.color = colors
+        site_map.data[0].marker.color = colors
 
-        site_data = dict()
-        for i, site in enumerate(station_data.data):
+        site_data_tmp = dict()
+        for i, site in enumerate(site_data.data):
             if site.name.lower() != site_name:
-                site_data[site.name] = dict()
-                site_data[site.name]["x"] = site.x
-                site_data[site.name]["y"] = site.y - shift * i
-        station_data.data = []
-        for i, site in enumerate(list(site_data.keys())):
-            station_data.add_trace(
+                site_data_tmp[site.name] = dict()
+                site_data_tmp[site.name]["x"] = site.x
+                site_data_tmp[site.name]["y"] = site.y - shift * i
+        site_data.data = []
+        for i, site in enumerate(list(site_data_tmp.keys())):
+            site_data.add_trace(
                 go.Scatter(
-                    x=site_data[site]["x"],
-                    y=site_data[site]["y"] + shift * i,
+                    x=site_data_tmp[site]["x"],
+                    y=site_data_tmp[site]["y"] + shift * i,
                     mode="lines",
                     name=site,
                 )
@@ -161,7 +160,7 @@ def register_callbacks(
 
     def delete_value_yaxis(shift: float, site_name: Site) -> None:
         yaxis_data = {"tickvals": [], "ticktext": []}
-        for i, site in enumerate(station_data.layout.yaxis.ticktext):
+        for i, site in enumerate(site_data.layout.yaxis.ticktext):
             if site.lower() != site_name:
                 yaxis_data["ticktext"].append(site)
         for i in range(len(yaxis_data["ticktext"])):
@@ -169,7 +168,7 @@ def register_callbacks(
         update_yaxis(yaxis_data)
 
     def update_yaxis(yaxis_data: dict[str, list[float | str]]) -> None:
-        station_data.update_layout(
+        site_data.update_layout(
             yaxis=dict(
                 tickmode="array",
                 tickvals=yaxis_data["tickvals"],
@@ -179,16 +178,16 @@ def register_callbacks(
 
     @app.callback(
         [
-            Output("graph-station-data", "figure", allow_duplicate=True),
+            Output("graph-site-data", "figure", allow_duplicate=True),
             Output("div-time-slider", "children", allow_duplicate=True),
         ],
         [Input("time-slider", "value")],
         prevent_initial_call=True,
     )
     def change_xaxis(value: list[int]) -> list[go.Figure | dcc.RangeSlider]:
-        if len(station_data.data) == 0:
-            return station_data, time_slider
-        date = station_data.data[0].x[0]
+        if len(site_data.data) == 0:
+            return site_data, time_slider
+        date = site_data.data[0].x[0]
 
         hour_start_limit = 23 if value[0] == 24 else value[0]
         minute_start_limit = 59 if value[0] == 24 else 0
@@ -218,13 +217,13 @@ def register_callbacks(
         )
 
         time_slider.value = [value[0], value[1]]
-        station_data.update_layout(xaxis=dict(range=[start_limit, end_limit]))
-        return station_data, time_slider
+        site_data.update_layout(xaxis=dict(range=[start_limit, end_limit]))
+        return site_data, time_slider
 
     @app.callback(
         [
-            Output("graph-station-map", "figure", allow_duplicate=True),
-            Output("graph-station-data", "figure", allow_duplicate=True),
+            Output("graph-site-map", "figure", allow_duplicate=True),
+            Output("graph-site-data", "figure", allow_duplicate=True),
             Output("div-time-slider", "children", allow_duplicate=True),
         ],
         [Input("clear-all", "n_clicks")],
@@ -232,46 +231,46 @@ def register_callbacks(
         prevent_initial_call=True,
     )
     def clear_all(n: int, data: NDArray) -> list[go.Figure | dcc.RangeSlider]:
-        if station_map.data[0].marker.color is None:
-            return station_map, station_data, time_slider
-        colors = station_map.data[0].marker.color.copy()
+        if site_map.data[0].marker.color is None:
+            return site_map, site_data, time_slider
+        colors = site_map.data[0].marker.color.copy()
         for i, color in enumerate(colors):
             if color == PointColor.RED.value:
                 if (
                     data is not None
-                    and station_map.data[0].text[i].lower() in data
+                    and site_map.data[0].text[i].lower() in data
                 ):
                     colors[i] = PointColor.GREEN.value
                 else:
                     colors[i] = PointColor.SILVER.value
-        station_map.data[0].marker.color = colors
+        site_map.data[0].marker.color = colors
         clear_all_graphs()
-        return station_map, station_data, time_slider
+        return site_map, site_data, time_slider
 
     def clear_all_graphs() -> None:
-        station_data.data = []
-        station_data.layout.xaxis = dict(title="Время")
-        station_data.layout.yaxis = dict()
+        site_data.data = []
+        site_data.layout.xaxis = dict(title="Время")
+        site_data.layout.yaxis = dict()
 
         time_slider.value = [0, 24]
         time_slider.disabled = True
 
     @app.callback(
-        Output("graph-station-map", "figure", allow_duplicate=True),
+        Output("graph-site-map", "figure", allow_duplicate=True),
         [Input("hide-show-site", "value")],
         prevent_initial_call=True,
     )
     def hide_show_site(value: bool) -> go.Figure:
         if value:
-            station_map.data[0].mode = "markers+text"
+            site_map.data[0].mode = "markers+text"
         else:
-            station_map.data[0].mode = "markers"
+            site_map.data[0].mode = "markers"
         checkbox_site.value = value
-        return station_map
+        return site_map
 
     @app.callback(
         [
-            Output("graph-station-map", "figure", allow_duplicate=True),
+            Output("graph-site-map", "figure", allow_duplicate=True),
             Output("min-lat", "invalid"),
             Output("max-lat", "invalid"),
             Output("min-lon", "invalid"),
@@ -296,7 +295,7 @@ def register_callbacks(
         max_lon: int,
         data: list[str],
     ) -> list[go.Figure | bool | list[str]]:
-        return_value_list = [station_map, False, False, False, False, data]
+        return_value_list = [site_map, False, False, False, False, data]
 
         check_value(min_lat, 1, return_value_list)
         check_value(max_lat, 2, return_value_list)
@@ -310,7 +309,7 @@ def register_callbacks(
                 site_coords, min_lat, max_lat, min_lon, max_lon
             )
             change_points_on_map(return_value_list, sites_by_region)
-        return_value_list[0] = station_map
+        return_value_list[0] = site_map
         return return_value_list
 
     def change_points_on_map(
@@ -320,14 +319,14 @@ def register_callbacks(
         sites, _, _ = get_namelatlon_arrays(sites_by_region)
         return_value_list[-1] = sites
 
-        colors = station_map.data[0].marker.color.copy()
-        for i, site in enumerate(station_map.data[0].text):
+        colors = site_map.data[0].marker.color.copy()
+        for i, site in enumerate(site_map.data[0].text):
             if site.lower() in sites:
                 if colors[i] == PointColor.SILVER.value:
                     colors[i] = PointColor.GREEN.value
             elif colors[i] == PointColor.GREEN.value:
                 colors[i] = PointColor.SILVER.value
-        station_map.data[0].marker.color = colors
+        site_map.data[0].marker.color = colors
 
     def check_value(
         degrees: int,
@@ -339,7 +338,7 @@ def register_callbacks(
 
     @app.callback(
         [
-            Output("graph-station-map", "figure", allow_duplicate=True),
+            Output("graph-site-map", "figure", allow_duplicate=True),
             Output("distance", "invalid"),
             Output("center-point-lat", "invalid"),
             Output("center-point-lon", "invalid"),
@@ -361,7 +360,7 @@ def register_callbacks(
         lon: int,
         data: list[str],
     ) -> list[go.Figure | bool | list[str]]:
-        return_value_list = [station_map, False, False, False, data]
+        return_value_list = [site_map, False, False, False, data]
 
         check_value(distance, 1, return_value_list)
         check_value(lat, 2, return_value_list)
@@ -381,7 +380,7 @@ def register_callbacks(
 
     @app.callback(
         [
-            Output("graph-station-map", "figure", allow_duplicate=True),
+            Output("graph-site-map", "figure", allow_duplicate=True),
             Output("site-names-store", "data", allow_duplicate=True),
         ],
         [
@@ -391,13 +390,13 @@ def register_callbacks(
         prevent_initial_call=True,
     )
     def clear_selection_by_region(n1: int, n2: int) -> list[go.Figure | None]:
-        if station_map.data[0].marker.color is not None:
-            colors = station_map.data[0].marker.color.copy()
+        if site_map.data[0].marker.color is not None:
+            colors = site_map.data[0].marker.color.copy()
             for i, color in enumerate(colors):
                 if color == PointColor.GREEN.value:
                     colors[i] = PointColor.SILVER.value
-            station_map.data[0].marker.color = colors
-        return station_map, None
+            site_map.data[0].marker.color = colors
+        return site_map, None
 
     @app.callback(
         [
@@ -473,9 +472,9 @@ def register_callbacks(
     @app.callback(
         [
             Output("open-window", "is_open"),
-            Output("graph-station-map", "figure", allow_duplicate=True),
+            Output("graph-site-map", "figure", allow_duplicate=True),
             Output("local-file-store", "data"),
-            Output("graph-station-data", "figure", allow_duplicate=True),
+            Output("graph-site-data", "figure", allow_duplicate=True),
             Output("div-time-slider", "children", allow_duplicate=True),
             Output("site-names-store", "data"),
         ],
@@ -493,18 +492,18 @@ def register_callbacks(
 
         colors = np.array([PointColor.SILVER.value] * site_array.shape[0])
 
-        station_map.data[0].lat = lat_array
-        station_map.data[0].lon = lon_array
-        station_map.data[0].text = [site.upper() for site in site_array]
-        station_map.data[0].marker.color = colors
+        site_map.data[0].lat = lat_array
+        site_map.data[0].lon = lon_array
+        site_map.data[0].text = [site.upper() for site in site_array]
+        site_map.data[0].marker.color = colors
 
         clear_all_graphs()
 
         return (
             False,
-            station_map,
+            site_map,
             str(local_file),
-            station_data,
+            site_data,
             time_slider,
             None,
         )

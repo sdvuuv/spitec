@@ -3,7 +3,7 @@ from pathlib import Path
 from datetime import datetime, UTC
 import numpy as np
 from numpy.typing import NDArray
-from .station_processing import Site
+from .site_processing import Site
 from .data_products import DataProduct, DataProducts
 
 

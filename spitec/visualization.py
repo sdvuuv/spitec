@@ -24,14 +24,14 @@ class PointColor(Enum):
 
 
 def create_layout(
-    station_map: go.Figure,
-    station_data: go.Figure,
+    site_map: go.Figure,
+    site_data: go.Figure,
     projection_radio: dbc.RadioItems,
     time_slider: dcc.RangeSlider,
     checkbox_site: dbc.Checkbox,
 ) -> html.Div:
-    left_side = create_left_side(station_map, projection_radio, checkbox_site)
-    data_tab = create_data_tab(station_data, time_slider)
+    left_side = create_left_side(site_map, projection_radio, checkbox_site)
+    data_tab = create_data_tab(site_data, time_slider)
     tab_lat_lon = create_selection_tab_lat_lon()
     tab_great_circle_distance = create_selection_tab_great_circle_distance()
 
@@ -101,7 +101,7 @@ def create_layout(
 
 
 def create_left_side(
-    station_map: go.Figure,
+    site_map: go.Figure,
     projection_radio: dbc.RadioItems,
     checkbox_site: dbc.Checkbox,
 ) -> list[dbc.Row]:
@@ -131,7 +131,7 @@ def create_left_side(
             className="me-1",
         ),
         dbc.Row(
-            dcc.Graph(id="graph-station-map", figure=station_map),
+            dcc.Graph(id="graph-site-map", figure=site_map),
             style={"margin-top": "30px"},
         ),
         dbc.Row(
@@ -267,8 +267,8 @@ def create_open_window() -> html.Div:
     return open_window
 
 
-def create_station_map() -> go.Figure:
-    station_map = go.Scattergeo(
+def create_site_map() -> go.Figure:
+    site_map = go.Scattergeo(
         mode="markers+text",
         marker=dict(size=8, line=dict(color="gray", width=1)),
         hoverlabel=dict(bgcolor="white"),
@@ -276,9 +276,9 @@ def create_station_map() -> go.Figure:
         hoverinfo="lat+lon",
     )
 
-    figure = go.Figure(station_map)
+    figure = go.Figure(site_map)
     figure.update_layout(
-        title=language["graph-station-map"]["title"],
+        title=language["graph-site-map"]["title"],
         title_font=dict(size=24, color="black"),
         margin=dict(l=0, t=60, r=0, b=0),
         geo=dict(projection_type=ProjectionType.MERCATOR.value),
@@ -320,11 +320,11 @@ def create_checkbox_site() -> dbc.Checkbox:
 
 
 def create_data_tab(
-    station_data: go.Figure, time_slider: dcc.RangeSlider
+    site_data: go.Figure, time_slider: dcc.RangeSlider
 ) -> list[dbc.Row]:
     data_tab = [
         dbc.Row(
-            dcc.Graph(id="graph-station-data", figure=station_data),
+            dcc.Graph(id="graph-site-data", figure=site_data),
             style={"margin-top": "28px"},
         ),
         dbc.Row(
@@ -349,16 +349,16 @@ def create_data_tab(
     return data_tab
 
 
-def create_station_data() -> go.Figure:
-    station_data = go.Figure()
+def create_site_data() -> go.Figure:
+    site_data = go.Figure()
 
-    station_data.update_layout(
-        title=language["data-tab"]["graph-station-data"]["title"],
+    site_data.update_layout(
+        title=language["data-tab"]["graph-site-data"]["title"],
         title_font=dict(size=24, color="black"),
         margin=dict(l=0, t=60, r=0, b=0),
-        xaxis=dict(title=language["data-tab"]["graph-station-data"]["xaxis"]),
+        xaxis=dict(title=language["data-tab"]["graph-site-data"]["xaxis"]),
     )
-    return station_data
+    return site_data
 
 
 def create_time_slider() -> dcc.RangeSlider:

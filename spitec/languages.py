@@ -8,7 +8,7 @@ languages = {
             "apply-selection-by-region": "Применить",
             "clear-selection-by-region": "Очистить выборку",
         },
-        "graph-station-map": {
+        "graph-site-map": {
             "title": "Карта",
         },
         "projection-radio": {
@@ -19,7 +19,7 @@ languages = {
         "hide-show-site": "Имена станций",
         "data-tab": {
             "label": "Данные",
-            "graph-station-data": {
+            "graph-site-data": {
                 "title": "Данные",
                 "xaxis": "Время",
             },
@@ -58,7 +58,7 @@ languages = {
             "clear-selection-by-region": "Clear selection",
             "download-file": "Download",
         },
-        "graph-station-map": {
+        "graph-site-map": {
             "title": "Map",
         },
         "projection-radio": {
@@ -69,7 +69,7 @@ languages = {
         "hide-show-site": "Site names",
         "data-tab": {
             "label": "Data",
-            "graph-station-data": {
+            "graph-site-data": {
                 "title": "Data",
                 "xaxis": "Time",
             },

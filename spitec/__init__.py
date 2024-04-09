@@ -1,5 +1,5 @@
 from .visualization import *
-from .station_processing import (
+from .site_processing import (
     Site,
     get_sites_coords,
     get_namelatlon_arrays,
