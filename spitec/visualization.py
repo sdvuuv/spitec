@@ -30,10 +30,10 @@ def create_layout(
     time_slider: dcc.RangeSlider,
     checkbox_site: dbc.Checkbox,
 ) -> html.Div:
-    left_side = create_left_side(site_map, projection_radio, checkbox_site)
-    data_tab = create_data_tab(site_data, time_slider)
-    tab_lat_lon = create_selection_tab_lat_lon()
-    tab_great_circle_distance = create_selection_tab_great_circle_distance()
+    left_side = _create_left_side(site_map, projection_radio, checkbox_site)
+    data_tab = _create_data_tab(site_data, time_slider)
+    tab_lat_lon = _create_selection_tab_lat_lon()
+    tab_great_circle_distance = _create_selection_tab_great_circle_distance()
 
     size_map = 5
     size_data = 7
@@ -100,13 +100,13 @@ def create_layout(
     return layout
 
 
-def create_left_side(
+def _create_left_side(
     site_map: go.Figure,
     projection_radio: dbc.RadioItems,
     checkbox_site: dbc.Checkbox,
 ) -> list[dbc.Row]:
-    download_window = create_download_window()
-    open_window = create_open_window()
+    download_window = _create_download_window()
+    open_window = _create_open_window()
     left_side = [
         dbc.Row(
             [
@@ -157,7 +157,7 @@ def create_left_side(
     return left_side
 
 
-def create_download_window() -> html.Div:
+def _create_download_window() -> html.Div:
     download_window = html.Div(
         [
             dbc.Button(language["buttons"]["download"], id="download"),
@@ -211,7 +211,7 @@ def create_download_window() -> html.Div:
     return download_window
 
 
-def create_open_window() -> html.Div:
+def _create_open_window() -> html.Div:
     open_window = html.Div(
         [
             dbc.Button(language["buttons"]["open"], id="open"),
@@ -319,7 +319,7 @@ def create_checkbox_site() -> dbc.Checkbox:
     return checkbox
 
 
-def create_data_tab(
+def _create_data_tab(
     site_data: go.Figure, time_slider: dcc.RangeSlider
 ) -> list[dbc.Row]:
     data_tab = [
@@ -381,7 +381,7 @@ def create_time_slider() -> dcc.RangeSlider:
     return time_slider
 
 
-def create_selection_tab_lat_lon() -> list[dbc.Row]:
+def _create_selection_tab_lat_lon() -> list[dbc.Row]:
     tab_lat_lon = [
         dbc.Row(
             [
@@ -464,7 +464,7 @@ def create_selection_tab_lat_lon() -> list[dbc.Row]:
     return tab_lat_lon
 
 
-def create_selection_tab_great_circle_distance() -> list[dbc.Row]:
+def _create_selection_tab_great_circle_distance() -> list[dbc.Row]:
     tab_great_circle_distance = [
         dbc.Row(
             [
