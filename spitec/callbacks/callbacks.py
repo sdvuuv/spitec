@@ -1,16 +1,13 @@
 from dash.dependencies import Input, Output, State
 import plotly.graph_objects as go
-from .visualization import PointColor, ProjectionType
-from .data_processing import Sat, retrieve_data
-from .data_products import DataProduct, DataProducts
-from .site_processing import *
+from ..view import PointColor, ProjectionType, languages
+from ..processing import *
 from datetime import datetime, UTC
 import dash
 from dash import html, dcc
 import dash_bootstrap_components as dbc
 from pathlib import Path
 from numpy.typing import NDArray
-from .languages import languages
 import numpy as np
 
 
