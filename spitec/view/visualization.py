@@ -6,6 +6,7 @@ import numpy as np
 from numpy.typing import NDArray
 from .languages import languages
 from datetime import datetime, date, timedelta
+from ..processing import DataProducts
 
 
 language = languages["en"]
@@ -29,9 +30,10 @@ def create_layout(
     projection_radio: dbc.RadioItems,
     time_slider: dcc.RangeSlider,
     checkbox_site: dbc.Checkbox,
+    selection_data_types: dbc.Select,
 ) -> html.Div:
     left_side = _create_left_side(site_map, projection_radio, checkbox_site)
-    data_tab = _create_data_tab(site_data, time_slider)
+    data_tab = _create_data_tab(site_data, time_slider, selection_data_types)
     tab_lat_lon = _create_selection_tab_lat_lon()
     tab_great_circle_distance = _create_selection_tab_great_circle_distance()
 
@@ -128,30 +130,29 @@ def _create_left_side(
                     style={"display": "flex", "justify-content": "flex-start"},
                 ),
             ],
-            className="me-1",
-        ),
-        dbc.Row(
-            dcc.Graph(id="graph-site-map", figure=site_map),
-            style={"margin-top": "30px"},
-        ),
-        dbc.Row(
-            html.Div(projection_radio),
-            style={
-                "margin-top": "30px",
-                "text-align": "center",
-                "fontSize": "18px",
-            },
         ),
         dbc.Row(
             html.Div(
                 checkbox_site,
                 style={
                     "display": "flex",
-                    "justify-content": "center",
+                    "justify-content": "flex-end",
                     "fontSize": "16px",
-                    "margin-top": "20px",
+                    "margin-top": "-3px",
+                    "margin-left": "-95px",
                 },
             ),
+        ),
+        dbc.Row(
+            dcc.Graph(id="graph-site-map", figure=site_map),
+        ),
+        dbc.Row(
+            html.Div(projection_radio),
+            style={
+                "margin-top": "25px",
+                "text-align": "center",
+                "fontSize": "18px",
+            },
         ),
     ]
     return left_side
@@ -186,7 +187,6 @@ def _create_download_window() -> html.Div:
                                 dbc.Button(
                                     language["buttons"]["download"],
                                     id="download-file",
-                                    className="me-1",
                                 ),
                                 style={
                                     "text-align": "center",
@@ -249,7 +249,6 @@ def _create_open_window() -> html.Div:
                                 dbc.Button(
                                     language["buttons"]["open"],
                                     id="open-file",
-                                    className="me-1",
                                 ),
                                 style={
                                     "text-align": "center",
@@ -320,7 +319,9 @@ def create_checkbox_site() -> dbc.Checkbox:
 
 
 def _create_data_tab(
-    site_data: go.Figure, time_slider: dcc.RangeSlider
+    site_data: go.Figure,
+    time_slider: dcc.RangeSlider,
+    selection_data_types: dbc.Select,
 ) -> list[dbc.Row]:
     data_tab = [
         dbc.Row(
@@ -329,24 +330,55 @@ def _create_data_tab(
         ),
         dbc.Row(
             html.Div(time_slider, id="div-time-slider"),
-            style={"margin-top": "30px"},
+            style={"margin-top": "25px"},
         ),
         dbc.Row(
-            dbc.Col(
-                dbc.Button(
-                    language["buttons"]["clear-all"],
-                    id="clear-all",
-                    class_name="me-1",
-                )
-            ),
+            [
+                dbc.Col(
+                    [
+                        selection_data_types,
+                        dbc.Button(
+                            language["buttons"]["clear-all"],
+                            id="clear-all",
+                        ),
+                    ],
+                    style={"display": "flex", "justify-content": "flex-end"},
+                ),
+            ],
             style={
                 "margin-top": "20px",
-                "fontSize": "18px",
-                "text-align": "center",
             },
         ),
     ]
     return data_tab
+
+
+def create_selection_data_types() -> dbc.Select:
+    options = [
+        {
+            "label": "2-10 minute TEC variations",
+            "value": DataProducts.dtec_2_10.name,
+        },
+        {
+            "label": "10-20 minute TEC variations",
+            "value": DataProducts.dtec_10_20.name,
+        },
+        {
+            "label": "20-60 minute TEC variations",
+            "value": DataProducts.dtec_20_60.name,
+        },
+        {"label": "ROTI", "value": DataProducts.roti.name},
+        {"label": "Adjusted TEC", "value": DataProducts.tec.name},
+        {"label": "Elevation angle", "value": DataProducts.elevation.name},
+        {"label": "Azimuth angle", "value": DataProducts.azimuth.name},
+    ]
+    select = dbc.Select(
+        id="selection-data-types",
+        options=options,
+        value=DataProducts.dtec_2_10.name,
+        style={"width": "250px", "margin-right": "20px"},
+    )
+    return select
 
 
 def create_site_data() -> go.Figure:
@@ -410,7 +442,6 @@ def _create_selection_tab_lat_lon() -> list[dbc.Row]:
                     style={"margin-left": "-30px"},
                 ),
             ],
-            class_name="me-1",
             style={"margin-top": "30px", "margin-left": "25px"},
         ),
         dbc.Row(
@@ -440,13 +471,11 @@ def _create_selection_tab_lat_lon() -> list[dbc.Row]:
                     style={"margin-left": "-30px"},
                 ),
             ],
-            class_name="me-1",
             style={"margin-top": "15px", "margin-left": "25px"},
         ),
         dbc.Button(
             language["buttons"]["apply-selection-by-region"],
             id="apply-lat-lon",
-            class_name="me-1",
             style={"margin-top": "20px"},
         ),
         dbc.Row(
@@ -454,7 +483,6 @@ def _create_selection_tab_lat_lon() -> list[dbc.Row]:
                 dbc.Button(
                     language["buttons"]["clear-selection-by-region"],
                     id="clear-selection-by-region1",
-                    class_name="me-1",
                     style={"margin-top": "20px"},
                 ),
                 width={"size": 3, "offset": 9},
@@ -480,10 +508,9 @@ def _create_selection_tab_great_circle_distance() -> list[dbc.Row]:
                         style={"width": "97%"},
                     ),
                     width=4,
-                    style={"margin-left": "-43px"},
+                    style={"margin-left": "-46px"},
                 ),
             ],
-            class_name="me-1",
             style={"margin-top": "30px", "margin-left": "20px"},
         ),
         dbc.Row(
@@ -519,13 +546,11 @@ def _create_selection_tab_great_circle_distance() -> list[dbc.Row]:
                     style={"margin-left": "-25px"},
                 ),
             ],
-            class_name="me-1",
             style={"margin-top": "15px", "margin-left": "40px"},
         ),
         dbc.Button(
             language["buttons"]["apply-selection-by-region"],
             id="apply-great-circle-distance",
-            class_name="me-1",
             style={"margin-top": "20px"},
         ),
         dbc.Row(
@@ -533,7 +558,6 @@ def _create_selection_tab_great_circle_distance() -> list[dbc.Row]:
                 dbc.Button(
                     language["buttons"]["clear-selection-by-region"],
                     id="clear-selection-by-region2",
-                    class_name="me-1",
                     style={"margin-top": "20px"},
                 ),
                 width={"size": 3, "offset": 9},

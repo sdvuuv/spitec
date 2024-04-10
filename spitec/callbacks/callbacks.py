@@ -14,6 +14,7 @@ import numpy as np
 language = languages["en"]
 FILE_FOLDER = Path("data")
 site_coords = None
+SHIFT = -0.5
 
 
 def register_callbacks(
@@ -23,6 +24,7 @@ def register_callbacks(
     projection_radio: dbc.RadioItems,
     time_slider: dcc.RangeSlider,
     checkbox_site: dbc.Checkbox,
+    selection_data_types: dbc.Select,
 ) -> None:
 
     @app.callback(
@@ -32,9 +34,7 @@ def register_callbacks(
     )
     def update_map_projection(projection_value: ProjectionType) -> go.Figure:
         if projection_value != site_map.layout.geo.projection.type:
-            site_map.update_layout(
-                geo=dict(projection_type=projection_value)
-            )
+            site_map.update_layout(geo=dict(projection_type=projection_value))
         projection_radio.value = projection_value
         return site_map
 
@@ -46,10 +46,7 @@ def register_callbacks(
             Output("div-time-slider", "children", allow_duplicate=True),
         ],
         [Input("graph-site-map", "clickData")],
-        [
-            State("site-names-store", "data"),
-            State("local-file-store", "data"),
-        ],
+        [State("site-names-store", "data"), State("local-file-store", "data")],
         prevent_initial_call=True,
     )
     def update_site_data(
@@ -57,7 +54,6 @@ def register_callbacks(
         data: NDArray,
         local_file: str,
     ) -> list[go.Figure | None | bool | dcc.RangeSlider]:
-        shift = -0.5
 
         if clickData is not None:
             site_name = clickData["points"][0]["text"].lower()
@@ -67,22 +63,30 @@ def register_callbacks(
                 site_color == PointColor.SILVER.value
                 or site_color == PointColor.GREEN.value
             ):
-                add_line(shift, site_name, site_idx, local_file)
+                colors = site_map.data[0].marker.color.copy()
+                colors[site_idx] = PointColor.RED.value
+                site_map.data[0].marker.color = colors
+
+                dataproduct = define_data_type()
+                add_line(site_name, dataproduct, local_file)
             elif site_color == PointColor.RED.value:
-                delete_line(shift, site_name, site_idx, data)
+                delete_line(site_name, site_idx, data)
         time_slider.disabled = True if len(site_data.data) == 0 else False
         return site_map, None, site_data, time_slider
 
-    def add_line(
-        shift: float, site_name: Site, site_idx: int, local_file: str
-    ) -> None:
-        colors = site_map.data[0].marker.color.copy()
-        colors[site_idx] = PointColor.RED.value
-        site_map.data[0].marker.color = colors
+    def define_data_type() -> DataProducts:
+        dataproduct = DataProducts.dtec_2_10
+        for name_data in DataProducts.__members__:
+            if selection_data_types.value == name_data:
+                dataproduct = DataProducts.__members__[name_data]
+                break
+        return dataproduct
 
+    def add_line(
+        site_name: Site, dataproduct: DataProducts, local_file: str
+    ) -> None:
         site_data_tmp = retrieve_data(local_file, [site_name])
         sat = list(site_data_tmp[site_name].keys())[0]
-        dataproduct = DataProducts.dtec_2_10
 
         vals = site_data_tmp[site_name][sat][dataproduct]
         times = site_data_tmp[site_name][sat][DataProducts.time]
@@ -92,21 +96,19 @@ def register_callbacks(
         site_data.add_trace(
             go.Scatter(
                 x=times,
-                y=vals + shift * number_lines,
+                y=vals + SHIFT * number_lines,
                 mode="lines",
                 name=site_name.upper(),
             )
         )
 
-        add_value_yaxis(shift, site_name, number_lines)
+        add_value_yaxis(site_name, number_lines)
 
-    def add_value_yaxis(
-        shift: float, site_name: Site, number_lines: int
-    ) -> None:
+    def add_value_yaxis(site_name: Site, number_lines: int) -> None:
         y_tickmode = site_data.layout.yaxis.tickmode
         if y_tickmode is None:
             site_data.layout.yaxis.tickmode = "array"
-            site_data.layout.yaxis.tickvals = [shift * number_lines]
+            site_data.layout.yaxis.tickvals = [SHIFT * number_lines]
             site_data.layout.yaxis.ticktext = [site_name.upper()]
         else:
             yaxis_data = {"tickvals": [], "ticktext": []}
@@ -115,13 +117,11 @@ def register_callbacks(
                     site_data.layout.yaxis.tickvals[i]
                 )
                 yaxis_data["ticktext"].append(site)
-            yaxis_data["tickvals"].append(shift * number_lines)
+            yaxis_data["tickvals"].append(SHIFT * number_lines)
             yaxis_data["ticktext"].append(site_name.upper())
             update_yaxis(yaxis_data)
 
-    def delete_line(
-        shift: float, site_name: Site, site_idx: int, data: NDArray
-    ) -> None:
+    def delete_line(site_name: Site, site_idx: int, data: NDArray) -> None:
         colors = site_map.data[0].marker.color.copy()
         if data is not None and site_name in data:
             colors[site_idx] = PointColor.GREEN.value
@@ -134,26 +134,26 @@ def register_callbacks(
             if site.name.lower() != site_name:
                 site_data_tmp[site.name] = dict()
                 site_data_tmp[site.name]["x"] = site.x
-                site_data_tmp[site.name]["y"] = site.y - shift * i
+                site_data_tmp[site.name]["y"] = site.y - SHIFT * i
         site_data.data = []
         for i, site in enumerate(list(site_data_tmp.keys())):
             site_data.add_trace(
                 go.Scatter(
                     x=site_data_tmp[site]["x"],
-                    y=site_data_tmp[site]["y"] + shift * i,
+                    y=site_data_tmp[site]["y"] + SHIFT * i,
                     mode="lines",
                     name=site,
                 )
             )
-        delete_value_yaxis(shift, site_name)
+        delete_value_yaxis(site_name)
 
-    def delete_value_yaxis(shift: float, site_name: Site) -> None:
+    def delete_value_yaxis(site_name: Site) -> None:
         yaxis_data = {"tickvals": [], "ticktext": []}
         for i, site in enumerate(site_data.layout.yaxis.ticktext):
             if site.lower() != site_name:
                 yaxis_data["ticktext"].append(site)
         for i in range(len(yaxis_data["ticktext"])):
-            yaxis_data["tickvals"].append(shift * i)
+            yaxis_data["tickvals"].append(SHIFT * i)
         update_yaxis(yaxis_data)
 
     def update_yaxis(yaxis_data: dict[str, list[float | str]]) -> None:
@@ -496,3 +496,21 @@ def register_callbacks(
             time_slider,
             None,
         )
+
+    @app.callback(
+        Output("graph-site-data", "figure", allow_duplicate=True),
+        [Input("selection-data-types", "value")],
+        [State("local-file-store", "data")],
+        prevent_initial_call=True,
+    )
+    def change_data_types(value: str, local_file: str) -> go.Figure:
+        selection_data_types.value = value
+        dataproduct = define_data_type()
+        site_names = site_data.layout.yaxis.ticktext
+
+        site_data.data = []
+        site_data.layout.yaxis = dict()
+
+        for name in site_names:
+            add_line(name.lower(), dataproduct, local_file)
+        return site_data
