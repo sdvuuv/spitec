@@ -2,9 +2,9 @@ from dash.dependencies import Input, Output, State
 import plotly.graph_objects as go
 from ..view import PointColor, ProjectionType, languages
 from ..processing import *
-from datetime import datetime, UTC
+from datetime import datetime, timezone
 import dash
-from dash import html, dcc
+from dash import dcc
 import dash_bootstrap_components as dbc
 from pathlib import Path
 from numpy.typing import NDArray
@@ -193,7 +193,7 @@ def register_callbacks(
             hour=hour_start_limit,
             minute=minute_start_limit,
             second=second_start_limit,
-            tzinfo=UTC,
+            tzinfo=timezone.utc,
         )
         end_limit = datetime(
             date.year,
@@ -202,7 +202,7 @@ def register_callbacks(
             hour=hour_end_limit,
             minute=minute_end_limit,
             second=second_end_limit,
-            tzinfo=UTC,
+            tzinfo=timezone.utc,
         )
 
         time_slider.value = [value[0], value[1]]
@@ -412,7 +412,7 @@ def register_callbacks(
         [State("date-selection", "date")],
         prevent_initial_call=True,
     )
-    def download_file(n1: int, date: str) -> dict[str, str]:
+    def download_file(n1: int, date: str) -> list[dict[str, str] | str]:
         text = language["download_window"]["successаfuly"]
         color = "green"
         if date is None:
@@ -514,3 +514,23 @@ def register_callbacks(
         for name in site_names:
             add_line(name.lower(), dataproduct, local_file)
         return site_data
+    
+    @app.callback(
+        Output("file-size", "children"),
+        [Input("check-file-size", "n_clicks")],
+        [State("date-selection", "date")],
+        prevent_initial_call=True,
+    )
+    def change_data_types(n: int, date: str) -> str:
+        text = language["download_window"]["file-size"]
+        if date is None:
+           text += "none"
+        else:
+            Mb = сheck_file_size(date)
+            if Mb is None:
+                text += "none"
+            elif Mb == 0:
+                text += language["download_window"]["unknown"]
+            else:
+                text += str(Mb)
+        return text

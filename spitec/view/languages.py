@@ -7,6 +7,7 @@ languages = {
             "clear-all": "Очистить всё",
             "apply-selection-by-region": "Применить",
             "clear-selection-by-region": "Очистить выборку",
+            "check-file-size": "Проверить размер файла",
         },
         "graph-site-map": {
             "title": "Карта",
@@ -43,6 +44,8 @@ languages = {
             "unsuccessаfuly": "Дата введена неверно",
             "repeat-action": "Этот файл уже загружен",
             "error": "Данный файл не существует",
+            "file-size": "Размер (Гб): ",
+            "unknown": "неизвестно",
         },
         "open_window": {
             "label": "Файл",
@@ -56,7 +59,7 @@ languages = {
             "clear-all": "Сlear all",
             "apply-selection-by-region": "Apply",
             "clear-selection-by-region": "Clear selection",
-            "download-file": "Download",
+            "check-file-size": "Check file size",
         },
         "graph-site-map": {
             "title": "Map",
@@ -93,6 +96,8 @@ languages = {
             "unsuccessаfuly": "The date is entered incorrectly",
             "repeat-action": "This file has already been downloaded",
             "error": "This file does not exist",
+            "file-size": "Size (Gb): ",
+            "unknown": "unknown",
         },
         "open_window": {
             "label": "File",

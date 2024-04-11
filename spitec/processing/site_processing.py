@@ -49,6 +49,20 @@ def load_data(filename: str, local_file: str | Path) -> bool:
             sys.stdout.write("\n")
     return True
 
+def сheck_file_size(filename: str) -> int:
+    url = DOWNLOAD_URL + filename
+    response = requests.get(url, stream=True)
+    if response.status_code != 200:
+        return None
+    total_length = response.headers.get("content-length")
+
+    if total_length is None:
+        return 0
+    else:
+        Mb = round(float(total_length) / 1024 / 1024 / 1024, 2)
+        return Mb
+
+
 
 def get_sites_coords(
     local_file: str | Path,

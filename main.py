@@ -1,5 +1,4 @@
 import dash
-from pathlib import Path
 from spitec import *
 
 app = dash.Dash(__name__, external_stylesheets=[dbc.themes.FLATLY])
@@ -32,4 +31,4 @@ register_callbacks(
 )
 
 if __name__ == "__main__":
-    app.run_server(debug=True)
+    app.run_server(host='0.0.0.0')

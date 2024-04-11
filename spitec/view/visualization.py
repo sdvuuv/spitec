@@ -2,8 +2,6 @@ from dash import html, dcc
 import plotly.graph_objects as go
 import dash_bootstrap_components as dbc
 from enum import Enum
-import numpy as np
-from numpy.typing import NDArray
 from .languages import languages
 from datetime import datetime, date, timedelta
 from ..processing import DataProducts
@@ -184,10 +182,23 @@ def _create_download_window() -> html.Div:
                                 style={"margin-left": "15px"},
                             ),
                             html.Div(
-                                dbc.Button(
-                                    language["buttons"]["download"],
-                                    id="download-file",
-                                ),
+                                language["download_window"]["file-size"],
+                                id="file-size",
+                                style={"font-size": "18px", "margin-top": "20px"},
+                            ),
+                            html.Div(
+                                [
+                                    dbc.Button(
+                                        language["buttons"]["check-file-size"],
+                                        id="check-file-size",
+                                        style={"margin-right": "10px"}
+                                    ),
+                                    dbc.Button(
+                                        language["buttons"]["download"],
+                                        id="download-file",
+                                        style={"margin-left": "10px"}
+                                    ),
+                                ],
                                 style={
                                     "text-align": "center",
                                     "margin-top": "20px",

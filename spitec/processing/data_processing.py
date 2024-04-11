@@ -1,6 +1,6 @@
 import h5py
 from pathlib import Path
-from datetime import datetime, UTC
+from datetime import datetime, timezone
 import numpy as np
 from numpy.typing import NDArray
 from .site_processing import Site
@@ -23,7 +23,7 @@ def retrieve_data(
         data[site] = dict()
         for sat in f[site].keys():
             timestamps = f[site][sat][DataProducts.timestamp.hdf_name][:]
-            times = [datetime.fromtimestamp(t, UTC) for t in timestamps]
+            times = [datetime.fromtimestamp(t, timezone.utc) for t in timestamps]
             data[site][sat] = {DataProducts.time: np.array(times)}
             for dataproduct in DataProducts:
                 if dataproduct is DataProducts.time:
