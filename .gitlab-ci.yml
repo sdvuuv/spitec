@@ -18,12 +18,14 @@
 
 stages:
     - demo
-
-demo:
-    image: python:3.10
+.demo:
     stage: demo
     tags:
-        - spitec 
+        - spitec
+    image: python:3.10
+
+demo:
+    extends: .demo
     script:
         - echo "Hello World!"
 
