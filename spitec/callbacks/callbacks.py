@@ -4,7 +4,7 @@ from ..view import PointColor, ProjectionType, languages
 from ..processing import *
 from datetime import datetime, timezone
 import dash
-from dash import dcc
+from dash import dcc, html
 import dash_bootstrap_components as dbc
 from pathlib import Path
 from numpy.typing import NDArray
