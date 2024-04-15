@@ -26,7 +26,7 @@ deploy:
   script:
       - pkill -f 'python main.py'
       - cd ./spitec && poetry install
-      - cd ./spitec && poetry run python main.py &
+      - poetry run python main.py &
   only:
     - main
 
