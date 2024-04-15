@@ -10,5 +10,6 @@ deploy:
       fi
     - poetry install
     - poetry run python main.py &
+    - exit
   only:
     - main
