@@ -4,7 +4,7 @@ import dash_bootstrap_components as dbc
 from enum import Enum
 from .languages import languages
 from datetime import datetime, date, timedelta
-from ..processing import DataProducts, DataProducta
+from ..processing import DataProducts
 
 
 language = languages["en"]
