@@ -4,6 +4,6 @@ stages:
 deploy:
   stage: deploy
   script:
-    - rsync -avz --delete ./ user@spitec:/home/user/spitec/
+    - git pull istp main
   only:
     - main
