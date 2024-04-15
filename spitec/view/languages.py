@@ -102,6 +102,5 @@ languages = {
         "open_window": {
             "label": "File",
         },
-        "gitrunner": "Work",
     },
 }
