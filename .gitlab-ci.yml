@@ -8,7 +8,7 @@ deploy:
       if pgrep -f 'python main.py' > /dev/null; then
         pkill -f 'python main.py'
       fi
-    - cd ./spitec && poetry install
-    - cd ./spitec && poetry run python main.py &
+    - poetry install
+    - poetry run python main.py &
   only:
     - main
