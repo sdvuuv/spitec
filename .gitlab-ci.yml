@@ -4,6 +4,7 @@ stages:
 deploy:
   stage: deploy
   script:
+    -ls -la
     - git pull
   only:
     - main
