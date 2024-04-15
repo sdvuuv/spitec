@@ -17,15 +17,16 @@
 # https://gitlab.com/gitlab-org/gitlab/-/blob/master/lib/gitlab/ci/templates/Getting-Started.gitlab-ci.yml
 
 stages:
-    - demo
-.demo:
-    stage: demo
-    tags:
-        - spitec
-    image: python:3.10
-
-demo:
-    extends: .demo
-    script:
-        - echo "Hello World!"
+    - deploy
+    
+deploy:
+  stage: deploy
+  tags:
+      - spitec
+  script:
+      - pkill -f 'python main.py'
+      - cd ./spitec && poetry install
+      - cd ./spitec && poetry run python main.py &
+  only:
+    - main
 
