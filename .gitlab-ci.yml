@@ -4,6 +4,6 @@ stages:
 deploy:
   stage: deploy
   script:
-    - git pull istp main
+    - git pull
   only:
     - main
