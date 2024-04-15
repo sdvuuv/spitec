@@ -9,7 +9,7 @@ deploy:
         pkill -f 'python main.py'
       fi
     - poetry install
-    - poetry run python main.py &
+    - nohup poetry run python main.py >/dev/null 2>&1 &
     - exit 0
   only:
     - main
