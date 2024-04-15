@@ -4,12 +4,7 @@ stages:
 deploy:
   stage: deploy
   script:
-    - |
-      if pgrep -f 'python main.py' > /dev/null; then
-        pkill -f 'python main.py'
-      fi
-    - poetry install
-    - nohup poetry run python main.py >/dev/null 2>&1 &
-    - exit 0
+    - ls -la
+    - git pull
   only:
     - main
