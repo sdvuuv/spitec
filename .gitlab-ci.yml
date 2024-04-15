@@ -4,6 +4,6 @@ stages:
 deploy:
   stage: deploy
   script:
-    - rsync -avz --delete ./ user@remote_server:/home/user/spitec/
+    - rsync -avz --delete ./ user@10.0.6.78:/home/user/spitec/
   only:
     - main
