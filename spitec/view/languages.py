@@ -63,7 +63,7 @@ languages = {
             "check-file-size": "Check file size",
         },
         "graph-site-map": {
-            "title": "Map",
+            "title": "Sites Map",
         },
         "projection-radio": {
             "mercator": "Mercator",
