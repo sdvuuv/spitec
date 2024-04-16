@@ -74,7 +74,7 @@ languages = {
         "data-tab": {
             "label": "Data products",
             "graph-site-data": {
-                "title": "Data products",
+                "title": "Data products series",
                 "xaxis": "Time",
             },
         },
