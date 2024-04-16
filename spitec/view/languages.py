@@ -1,4 +1,5 @@
 languages = {
+    "gitlub-runner": "RUNNER",
     "ru": {
         "buttons": {
             "download": "Загрузить",
@@ -102,6 +103,5 @@ languages = {
         "open_window": {
             "label": "File",
         },
-        "gitlub-runner": "RUNNER",
     },
 }
