@@ -1,5 +1,4 @@
 languages = {
-    "gitlub-runner": "RUNNER",
     "ru": {
         "buttons": {
             "download": "Загрузить",
@@ -72,9 +71,9 @@ languages = {
         },
         "hide-show-site": "Site names",
         "data-tab": {
-            "label": "Data products",
+            "label": "Data products series",
             "graph-site-data": {
-                "title": "Data products",
+                "title": "Data products series",
                 "xaxis": "Time",
             },
         },
