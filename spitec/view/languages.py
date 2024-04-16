@@ -72,9 +72,9 @@ languages = {
         },
         "hide-show-site": "Site names",
         "data-tab": {
-            "label": "Data products series",
+            "label": "Data products",
             "graph-site-data": {
-                "title": "Data products series",
+                "title": "Data products",
                 "xaxis": "Time",
             },
         },
