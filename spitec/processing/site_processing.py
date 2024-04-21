@@ -82,10 +82,10 @@ def get_namelatlon_arrays(
 ) -> tuple[NDArray]:
     site_names = np.array(list(site_coords.keys()))
     latitudes = [
-        np.degrees(site_coords[name][Coordinate.lat]) for name in site_names
+        np.degrees(site_coords[name][Coordinate.lat.value]) for name in site_names
     ]
     longitudes = [
-        np.degrees(site_coords[name][Coordinate.lon]) for name in site_names
+        np.degrees(site_coords[name][Coordinate.lon.value]) for name in site_names
     ]
 
     latitudes_array = np.array(latitudes)
@@ -103,8 +103,8 @@ def select_sites_by_region(
     regional_coords = dict()
     sites = list(coords.keys())
     for site in sites:
-        site_lat_radians = coords[site][Coordinate.lat]
-        site_lon_radians = coords[site][Coordinate.lon]
+        site_lat_radians = coords[site][Coordinate.lat.value]
+        site_lon_radians = coords[site][Coordinate.lon.value]
 
         site_lat = np.degrees(site_lat_radians)
         site_lon = np.degrees(site_lon_radians)
@@ -144,14 +144,14 @@ def select_sites_in_circle(
     central_point: dict[Coordinate, float],
     distance_threshold: float,
 ) -> dict[Site, dict[Coordinate, float]]:
-    late_central = np.radians(central_point[Coordinate.lat])
-    lone_central = np.radians(central_point[Coordinate.lon])
+    late_central = np.radians(central_point[Coordinate.lat.value])
+    lone_central = np.radians(central_point[Coordinate.lon.value])
 
     circular_coords = dict()
     sites = list(coords.keys())
     for site in sites:
-        late = coords[site][Coordinate.lat]
-        lone = coords[site][Coordinate.lon]
+        late = coords[site][Coordinate.lat.value]
+        lone = coords[site][Coordinate.lon.value]
 
         distance = (
             get_great_circle_distance(late, lone, late_central, lone_central)
@@ -169,5 +169,5 @@ def _add_site_to_dict(
     lon: float,
 ) -> None:
     coords[site] = dict()
-    coords[site][Coordinate.lat] = lat
-    coords[site][Coordinate.lon] = lon
+    coords[site][Coordinate.lat.value] = lat
+    coords[site][Coordinate.lon.value] = lon

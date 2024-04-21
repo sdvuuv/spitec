@@ -1,7 +1,9 @@
 from dash.dependencies import Input, Output, State
 import plotly.graph_objects as go
-from ..view import PointColor, ProjectionType, languages
+# from ..view import PointColor, ProjectionType, languages
+from ..view import *
 from ..processing import *
+from .figure import create_map_with_sites, create_site_data_with_values
 from datetime import datetime, timezone
 import dash
 from dash import dcc
@@ -13,29 +15,30 @@ import numpy as np
 
 language = languages["en"]
 FILE_FOLDER = Path("data")
-site_coords = None
-SHIFT = -0.5
 
 
 def register_callbacks(
-    app: dash.Dash,
-    site_map: go.Figure,
-    site_data: go.Figure,
-    projection_radio: dbc.RadioItems,
-    time_slider: dcc.RangeSlider,
-    checkbox_site: dbc.Checkbox,
-    selection_data_types: dbc.Select,
+    app: dash.Dash
 ) -> None:
-
     @app.callback(
         Output("graph-site-map", "figure", allow_duplicate=True),
         [Input("projection-radio", "value")],
+        [
+            State("hide-show-site", "value"),
+            State("region-site-names-store", "data"),
+            State("site-coords-store", "data"),
+            State("site-data-store", "data"),
+        ],
         prevent_initial_call=True,
     )
-    def update_map_projection(projection_value: ProjectionType) -> go.Figure:
-        if projection_value != site_map.layout.geo.projection.type:
-            site_map.update_layout(geo=dict(projection_type=projection_value))
-        projection_radio.value = projection_value
+    def update_map_projection(
+        projection_value: ProjectionType, 
+        check_value: bool,
+        region_site_names: list[str],
+        site_coords: dict[Site, dict[Coordinate, float]],
+        site_data_store: list[str]
+    ) -> go.Figure:
+        site_map = create_map_with_sites(site_coords, projection_value, check_value, region_site_names, site_data_store)
         return site_map
 
     @app.callback(
@@ -43,218 +46,129 @@ def register_callbacks(
             Output("graph-site-map", "figure", allow_duplicate=True),
             Output("graph-site-map", "clickData"),
             Output("graph-site-data", "figure", allow_duplicate=True),
-            Output("div-time-slider", "children", allow_duplicate=True),
+            Output("time-slider", "disabled", allow_duplicate=True),
+            Output("site-data-store", "data", allow_duplicate=True)
         ],
         [Input("graph-site-map", "clickData")],
-        [State("site-names-store", "data"), State("local-file-store", "data")],
+        [
+            State("local-file-store", "data"),
+            State("projection-radio", "value"),
+            State("hide-show-site", "value"),
+            State("region-site-names-store", "data"),
+            State("site-coords-store", "data"),
+            State("selection-data-types", "value"),
+            State("site-data-store", "data"),
+            State("time-slider", "value"),
+        ],
         prevent_initial_call=True,
     )
     def update_site_data(
         clickData: dict[str, list[dict[str, float | str | dict]]],
-        data: NDArray,
         local_file: str,
+        projection_value: ProjectionType, 
+        check_value: bool,
+        region_site_names: list[str],
+        site_coords: dict[Site, dict[Coordinate, float]],
+        data_types: str,
+        site_data_store: list[str],
+        time_value: list[int],
     ) -> list[go.Figure | None | bool | dcc.RangeSlider]:
-
+        site_map = create_map_with_sites(site_coords, projection_value, check_value, region_site_names, site_data_store)
+        
         if clickData is not None:
-            site_name = clickData["points"][0]["text"].lower()
+            site_name = clickData["points"][0]["text"]
+            if site_data_store is None:
+                site_data_store = []
+            
             site_idx = clickData["points"][0]["pointIndex"]
             site_color = site_map.data[0].marker.color[site_idx]
             if (
                 site_color == PointColor.SILVER.value
                 or site_color == PointColor.GREEN.value
             ):
-                colors = site_map.data[0].marker.color.copy()
-                colors[site_idx] = PointColor.RED.value
-                site_map.data[0].marker.color = colors
-
-                dataproduct = define_data_type()
-                add_line(site_name, dataproduct, local_file)
+                site_data_store.append(site_name)
             elif site_color == PointColor.RED.value:
-                delete_line(site_name, site_idx, data)
-        time_slider.disabled = True if len(site_data.data) == 0 else False
-        return site_map, None, site_data, time_slider
+                site_data_store.remove(site_name)
+        site_map = create_map_with_sites(site_coords, projection_value, check_value, region_site_names, site_data_store)
+        site_data = create_site_data_with_values(site_data_store, data_types, local_file, time_value)
 
-    def define_data_type() -> DataProducts:
-        dataproduct = DataProducts.dtec_2_10
-        for name_data in DataProducts.__members__:
-            if selection_data_types.value == name_data:
-                dataproduct = DataProducts.__members__[name_data]
-                break
-        return dataproduct
+        disabled = True if len(site_data.data) == 0 else False
 
-    def add_line(
-        site_name: Site, dataproduct: DataProducts, local_file: str
-    ) -> None:
-        site_data_tmp = retrieve_data(local_file, [site_name])
-        sat = list(site_data_tmp[site_name].keys())[0]
+        site_data_store = site_data.layout.yaxis.ticktext
+        return site_map, None, site_data, disabled, site_data_store
 
-        vals = site_data_tmp[site_name][sat][dataproduct]
-        times = site_data_tmp[site_name][sat][DataProducts.time]
-
-        number_lines = len(site_data.data)
-
-        site_data.add_trace(
-            go.Scatter(
-                x=times,
-                y=vals + SHIFT * number_lines,
-                mode="lines",
-                name=site_name.upper(),
-            )
-        )
-
-        add_value_yaxis(site_name, number_lines)
-
-    def add_value_yaxis(site_name: Site, number_lines: int) -> None:
-        y_tickmode = site_data.layout.yaxis.tickmode
-        if y_tickmode is None:
-            site_data.layout.yaxis.tickmode = "array"
-            site_data.layout.yaxis.tickvals = [SHIFT * number_lines]
-            site_data.layout.yaxis.ticktext = [site_name.upper()]
-        else:
-            yaxis_data = {"tickvals": [], "ticktext": []}
-            for i, site in enumerate(site_data.layout.yaxis.ticktext):
-                yaxis_data["tickvals"].append(
-                    site_data.layout.yaxis.tickvals[i]
-                )
-                yaxis_data["ticktext"].append(site)
-            yaxis_data["tickvals"].append(SHIFT * number_lines)
-            yaxis_data["ticktext"].append(site_name.upper())
-            update_yaxis(yaxis_data)
-
-    def delete_line(site_name: Site, site_idx: int, data: NDArray) -> None:
-        colors = site_map.data[0].marker.color.copy()
-        if data is not None and site_name in data:
-            colors[site_idx] = PointColor.GREEN.value
-        else:
-            colors[site_idx] = PointColor.SILVER.value
-        site_map.data[0].marker.color = colors
-
-        site_data_tmp = dict()
-        for i, site in enumerate(site_data.data):
-            if site.name.lower() != site_name:
-                site_data_tmp[site.name] = dict()
-                site_data_tmp[site.name]["x"] = site.x
-                site_data_tmp[site.name]["y"] = site.y - SHIFT * i
-        site_data.data = []
-        for i, site in enumerate(list(site_data_tmp.keys())):
-            site_data.add_trace(
-                go.Scatter(
-                    x=site_data_tmp[site]["x"],
-                    y=site_data_tmp[site]["y"] + SHIFT * i,
-                    mode="lines",
-                    name=site,
-                )
-            )
-        delete_value_yaxis(site_name)
-
-    def delete_value_yaxis(site_name: Site) -> None:
-        yaxis_data = {"tickvals": [], "ticktext": []}
-        for i, site in enumerate(site_data.layout.yaxis.ticktext):
-            if site.lower() != site_name:
-                yaxis_data["ticktext"].append(site)
-        for i in range(len(yaxis_data["ticktext"])):
-            yaxis_data["tickvals"].append(SHIFT * i)
-        update_yaxis(yaxis_data)
-
-    def update_yaxis(yaxis_data: dict[str, list[float | str]]) -> None:
-        site_data.update_layout(
-            yaxis=dict(
-                tickmode="array",
-                tickvals=yaxis_data["tickvals"],
-                ticktext=yaxis_data["ticktext"],
-            )
-        )
 
     @app.callback(
         [
             Output("graph-site-data", "figure", allow_duplicate=True),
-            Output("div-time-slider", "children", allow_duplicate=True),
+            Output("time-slider", "disabled", allow_duplicate=True),
         ],
         [Input("time-slider", "value")],
+        [
+            State("selection-data-types", "value"),
+            State("site-data-store", "data"),
+            State("local-file-store", "data"),
+        ],
         prevent_initial_call=True,
     )
-    def change_xaxis(value: list[int]) -> list[go.Figure | dcc.RangeSlider]:
-        if len(site_data.data) == 0:
-            return site_data, time_slider
-        date = site_data.data[0].x[0]
-
-        hour_start_limit = 23 if value[0] == 24 else value[0]
-        minute_start_limit = 59 if value[0] == 24 else 0
-        second_start_limit = 59 if value[0] == 24 else 0
-
-        hour_end_limit = 23 if value[1] == 24 else value[1]
-        minute_end_limit = 59 if value[1] == 24 else 0
-        second_end_limit = 59 if value[1] == 24 else 0
-
-        start_limit = datetime(
-            date.year,
-            date.month,
-            date.day,
-            hour=hour_start_limit,
-            minute=minute_start_limit,
-            second=second_start_limit,
-            tzinfo=timezone.utc,
-        )
-        end_limit = datetime(
-            date.year,
-            date.month,
-            date.day,
-            hour=hour_end_limit,
-            minute=minute_end_limit,
-            second=second_end_limit,
-            tzinfo=timezone.utc,
-        )
-
-        time_slider.value = [value[0], value[1]]
-        site_data.update_layout(xaxis=dict(range=[start_limit, end_limit]))
-        return site_data, time_slider
+    def change_xaxis(
+        time_value: list[int],
+        data_types: str,
+        site_data_store: list[str],
+        local_file: str,
+    ) -> list[go.Figure | dcc.RangeSlider]:
+        site_data = create_site_data_with_values(site_data_store, data_types, local_file, time_value)
+        disabled = True if len(site_data.data) == 0 else False
+        return site_data, disabled
 
     @app.callback(
         [
             Output("graph-site-map", "figure", allow_duplicate=True),
             Output("graph-site-data", "figure", allow_duplicate=True),
-            Output("div-time-slider", "children", allow_duplicate=True),
+            Output("time-slider", "disabled", allow_duplicate=True),
+            Output("site-data-store", "data", allow_duplicate=True),
         ],
         [Input("clear-all", "n_clicks")],
-        [State("site-names-store", "data")],
+        [
+            State("projection-radio", "value"),
+            State("hide-show-site", "value"),
+            State("region-site-names-store", "data"),
+            State("site-coords-store", "data"),
+         ],
         prevent_initial_call=True,
     )
-    def clear_all(n: int, data: NDArray) -> list[go.Figure | dcc.RangeSlider]:
-        if site_map.data[0].marker.color is None:
-            return site_map, site_data, time_slider
-        colors = site_map.data[0].marker.color.copy()
-        for i, color in enumerate(colors):
-            if color == PointColor.RED.value:
-                if (
-                    data is not None
-                    and site_map.data[0].text[i].lower() in data
-                ):
-                    colors[i] = PointColor.GREEN.value
-                else:
-                    colors[i] = PointColor.SILVER.value
-        site_map.data[0].marker.color = colors
-        clear_all_graphs()
-        return site_map, site_data, time_slider
+    def clear_all(
+        n: int,
+        projection_value: ProjectionType, 
+        check_value: bool,
+        region_site_names: list[str],
+        site_coords: dict[Site, dict[Coordinate, float]],
+    ) -> list[go.Figure | dcc.RangeSlider]:
+        site_data = create_site_data_with_values(None, None, None, None)
+        site_map = create_map_with_sites(site_coords, projection_value, check_value, region_site_names, None)
+        disabled = True 
+        return site_map, site_data, disabled, None
 
-    def clear_all_graphs() -> None:
-        site_data.data = []
-        site_data.layout.xaxis = dict(title="Время")
-        site_data.layout.yaxis = dict()
-
-        time_slider.value = [0, 24]
-        time_slider.disabled = True
 
     @app.callback(
         Output("graph-site-map", "figure", allow_duplicate=True),
         [Input("hide-show-site", "value")],
+        [
+            State("projection-radio", "value"),
+            State("region-site-names-store", "data"),
+            State("site-coords-store", "data"),
+            State("site-data-store", "data"),
+        ],
         prevent_initial_call=True,
     )
-    def hide_show_site(value: bool) -> go.Figure:
-        if value:
-            site_map.data[0].mode = "markers+text"
-        else:
-            site_map.data[0].mode = "markers"
-        checkbox_site.value = value
+    def hide_show_site(
+        check_value: bool, 
+        projection_value: ProjectionType,
+        region_site_names: list[str],
+        site_coords: dict[Site, dict[Coordinate, float]],
+        site_data_store: list[str]
+    ) -> go.Figure:
+        site_map = create_map_with_sites(site_coords, projection_value, check_value, region_site_names, site_data_store)
         return site_map
 
     @app.callback(
@@ -264,7 +178,7 @@ def register_callbacks(
             Output("max-lat", "invalid"),
             Output("min-lon", "invalid"),
             Output("max-lon", "invalid"),
-            Output("site-names-store", "data", allow_duplicate=True),
+            Output("region-site-names-store", "data", allow_duplicate=True),
         ],
         [Input("apply-lat-lon", "n_clicks")],
         [
@@ -272,7 +186,11 @@ def register_callbacks(
             State("max-lat", "value"),
             State("min-lon", "value"),
             State("max-lon", "value"),
-            State("site-names-store", "data"),
+            State("region-site-names-store", "data"),
+            State("projection-radio", "value"),
+            State("hide-show-site", "value"),
+            State("site-coords-store", "data"),
+            State("site-data-store", "data"),
         ],
         prevent_initial_call=True,
     )
@@ -282,47 +200,38 @@ def register_callbacks(
         max_lat: int,
         min_lon: int,
         max_lon: int,
-        data: list[str],
+        region_site_names: list[str],
+        projection_value: ProjectionType,
+        check_value: bool,
+        site_coords: dict[Site, dict[Coordinate, float]],
+        site_data_store: list[str]
     ) -> list[go.Figure | bool | list[str]]:
-        return_value_list = [site_map, False, False, False, False, data]
+        return_value_list = [None, False, False, False, False, region_site_names]
+        sites = region_site_names
 
-        check_value(min_lat, 1, return_value_list)
-        check_value(max_lat, 2, return_value_list)
-        check_value(min_lon, 3, return_value_list)
-        check_value(max_lon, 4, return_value_list)
+        check_region_value(min_lat, 1, return_value_list)
+        check_region_value(max_lat, 2, return_value_list)
+        check_region_value(min_lon, 3, return_value_list)
+        check_region_value(max_lon, 4, return_value_list)
 
         if True in return_value_list or site_coords is None:
+            return_value_list[0] = create_map_with_sites(site_coords, projection_value, check_value, sites, site_data_store)
             return return_value_list
         else:
             sites_by_region = select_sites_by_region(
                 site_coords, min_lat, max_lat, min_lon, max_lon
             )
-            change_points_on_map(return_value_list, sites_by_region)
-        return_value_list[0] = site_map
+            sites, _, _ = get_namelatlon_arrays(sites_by_region)
+            return_value_list[-1] = sites
+        return_value_list[0] = create_map_with_sites(site_coords, projection_value, check_value, sites, site_data_store)
         return return_value_list
 
-    def change_points_on_map(
-        return_value_list: list[go.Figure | bool | list[str]],
-        sites_by_region: dict[Site, dict[Coordinate, float]],
-    ) -> None:
-        sites, _, _ = get_namelatlon_arrays(sites_by_region)
-        return_value_list[-1] = sites
-
-        colors = site_map.data[0].marker.color.copy()
-        for i, site in enumerate(site_map.data[0].text):
-            if site.lower() in sites:
-                if colors[i] == PointColor.SILVER.value:
-                    colors[i] = PointColor.GREEN.value
-            elif colors[i] == PointColor.GREEN.value:
-                colors[i] = PointColor.SILVER.value
-        site_map.data[0].marker.color = colors
-
-    def check_value(
-        degrees: int,
+    def check_region_value(
+        value: int,
         idx: int,
         return_value_list: dict[str, go.Figure | bool],
     ) -> None:
-        if degrees is None:
+        if value is None:
             return_value_list[idx] = True
 
     @app.callback(
@@ -331,14 +240,18 @@ def register_callbacks(
             Output("distance", "invalid"),
             Output("center-point-lat", "invalid"),
             Output("center-point-lon", "invalid"),
-            Output("site-names-store", "data", allow_duplicate=True),
+            Output("region-site-names-store", "data", allow_duplicate=True),
         ],
         [Input("apply-great-circle-distance", "n_clicks")],
         [
             State("distance", "value"),
             State("center-point-lat", "value"),
             State("center-point-lon", "value"),
-            State("site-names-store", "data"),
+            State("region-site-names-store", "data"),
+            State("projection-radio", "value"),
+            State("hide-show-site", "value"),
+            State("site-coords-store", "data"),
+            State("site-data-store", "data"),
         ],
         prevent_initial_call=True,
     )
@@ -347,44 +260,60 @@ def register_callbacks(
         distance: int,
         lat: int,
         lon: int,
-        data: list[str],
+        region_site_names: list[str],
+        projection_value: ProjectionType,
+        check_value: bool,
+        site_coords: dict[Site, dict[Coordinate, float]],
+        site_data_store: list[str]
     ) -> list[go.Figure | bool | list[str]]:
-        return_value_list = [site_map, False, False, False, data]
+        return_value_list = [None, False, False, False, region_site_names]
+        sites = region_site_names
 
-        check_value(distance, 1, return_value_list)
-        check_value(lat, 2, return_value_list)
-        check_value(lon, 3, return_value_list)
+        check_region_value(distance, 1, return_value_list)
+        check_region_value(lat, 2, return_value_list)
+        check_region_value(lon, 3, return_value_list)
 
         if True in return_value_list or site_coords is None:
+            return_value_list[0] = create_map_with_sites(site_coords, projection_value, check_value, sites, site_data_store)
             return return_value_list
         else:
             central_point = dict()
-            central_point[Coordinate.lat] = lat
-            central_point[Coordinate.lon] = lon
+            central_point[Coordinate.lat.value] = lat
+            central_point[Coordinate.lon.value] = lon
             sites_by_region = select_sites_in_circle(
                 site_coords, central_point, distance
             )
-            change_points_on_map(return_value_list, sites_by_region)
+            sites, _, _ = get_namelatlon_arrays(sites_by_region)
+            return_value_list[-1] = sites
+        return_value_list[0] = create_map_with_sites(site_coords, projection_value, check_value, sites, site_data_store)
         return return_value_list
 
     @app.callback(
         [
             Output("graph-site-map", "figure", allow_duplicate=True),
-            Output("site-names-store", "data", allow_duplicate=True),
+            Output("region-site-names-store", "data", allow_duplicate=True),
         ],
         [
             Input("clear-selection-by-region1", "n_clicks"),
             Input("clear-selection-by-region2", "n_clicks"),
         ],
+        [
+            State("projection-radio", "value"),
+            State("hide-show-site", "value"),
+            State("site-coords-store", "data"),
+            State("site-data-store", "data"),
+        ],
         prevent_initial_call=True,
     )
-    def clear_selection_by_region(n1: int, n2: int) -> list[go.Figure | None]:
-        if site_map.data[0].marker.color is not None:
-            colors = site_map.data[0].marker.color.copy()
-            for i, color in enumerate(colors):
-                if color == PointColor.GREEN.value:
-                    colors[i] = PointColor.SILVER.value
-            site_map.data[0].marker.color = colors
+    def clear_selection_by_region(
+        n1: int, 
+        n2: int,
+        projection_value: ProjectionType,
+        check_value: bool,
+        site_coords: dict[Site, dict[Coordinate, float]],
+        site_data_store: list[str]
+    ) -> list[go.Figure | None]:
+        site_map = create_map_with_sites(site_coords, projection_value, check_value, None, site_data_store)
         return site_map, None
 
     @app.callback(
@@ -436,6 +365,26 @@ def register_callbacks(
             "color": color,
         }
         return style, text
+    
+    @app.callback(
+        Output("file-size", "children"),
+        [Input("check-file-size", "n_clicks")],
+        [State("date-selection", "date")],
+        prevent_initial_call=True,
+    )
+    def change_data_types(n: int, date: str) -> str:
+        text = language["download_window"]["file-size"]
+        if date is None:
+           text += "none"
+        else:
+            Mb = сheck_file_size(date)
+            if Mb is None:
+                text += "none"
+            elif Mb == 0:
+                text += language["download_window"]["unknown"]
+            else:
+                text += str(Mb)
+        return text
 
     @app.callback(
         [
@@ -464,73 +413,94 @@ def register_callbacks(
             Output("graph-site-map", "figure", allow_duplicate=True),
             Output("local-file-store", "data"),
             Output("graph-site-data", "figure", allow_duplicate=True),
-            Output("div-time-slider", "children", allow_duplicate=True),
-            Output("site-names-store", "data"),
+            Output("time-slider", "disabled", allow_duplicate=True),
+            Output("site-coords-store", "data"),
+            Output("region-site-names-store", "data"),
+            Output("site-data-store", "data"),
         ],
         [Input("open-file", "n_clicks")],
-        [State("select-file", "value")],
+        [
+            State("select-file", "value"),
+            State("projection-radio", "value"),
+            State("hide-show-site", "value"),
+        ],
         prevent_initial_call=True,
     )
     def open_close_open_window(
-        n1: int, value: str
+        n1: int, 
+        filename: str, 
+        projection_value: ProjectionType, 
+        check_value: bool,
     ) -> list[bool | go.Figure | str | dcc.RangeSlider | None]:
-        global site_coords
-        local_file = FILE_FOLDER / value
+        local_file = FILE_FOLDER / filename
         site_coords = get_sites_coords(local_file)
-        site_array, lat_array, lon_array = get_namelatlon_arrays(site_coords)
+        
+        site_map = create_map_with_sites(site_coords, projection_value, check_value, None, None)
 
-        colors = np.array([PointColor.SILVER.value] * site_array.shape[0])
-
-        site_map.data[0].lat = lat_array
-        site_map.data[0].lon = lon_array
-        site_map.data[0].text = [site.upper() for site in site_array]
-        site_map.data[0].marker.color = colors
-
-        clear_all_graphs()
+        site_data = create_site_data()
 
         return (
             False,
             site_map,
             str(local_file),
             site_data,
-            time_slider,
+            True,
+            site_coords,
             None,
+            None
         )
 
     @app.callback(
         Output("graph-site-data", "figure", allow_duplicate=True),
         [Input("selection-data-types", "value")],
-        [State("local-file-store", "data")],
+        [
+            State("local-file-store", "data"),
+            State("site-data-store", "data"),
+            State("time-slider", "value"),
+        ],
         prevent_initial_call=True,
     )
-    def change_data_types(value: str, local_file: str) -> go.Figure:
-        selection_data_types.value = value
-        dataproduct = define_data_type()
-        site_names = site_data.layout.yaxis.ticktext
-
-        site_data.data = []
-        site_data.layout.yaxis = dict()
-
-        for name in site_names:
-            add_line(name.lower(), dataproduct, local_file)
+    def change_data_types(
+        data_types: str, 
+        local_file: str,
+        site_data_store: list[str],
+        time_value: list[int],
+    ) -> go.Figure:
+        site_data = create_site_data_with_values(site_data_store, data_types, local_file, time_value)
         return site_data
-    
+
     @app.callback(
-        Output("file-size", "children"),
-        [Input("check-file-size", "n_clicks")],
-        [State("date-selection", "date")],
-        prevent_initial_call=True,
+        [
+            Output("graph-site-map", "figure"),
+            Output("graph-site-data", "figure"),
+            Output("time-slider", "disabled"),
+        ],
+        [Input("url", "pathname")],
+        [
+            State("projection-radio", "value"),
+            State("hide-show-site", "value"),
+            State("region-site-names-store", "data"),
+            State("site-coords-store", "data"),
+            State("site-data-store", "data"),
+            State("local-file-store", "data"),
+            State("time-slider", "value"),
+            State("selection-data-types", "value"),
+         ]
     )
-    def change_data_types(n: int, date: str) -> str:
-        text = language["download_window"]["file-size"]
-        if date is None:
-           text += "none"
-        else:
-            Mb = сheck_file_size(date)
-            if Mb is None:
-                text += "none"
-            elif Mb == 0:
-                text += language["download_window"]["unknown"]
-            else:
-                text += str(Mb)
-        return text
+    def update_all(
+        pathname: str,
+        projection_value: ProjectionType, 
+        check_value: bool,
+        region_site_names: list[str],
+        site_coords: dict[Site, dict[Coordinate, float]],
+        site_data_store: list[str],
+        local_file: str,
+        time_value: list[int],
+        data_types: str, 
+    ) -> go.Figure:
+        site_map = create_map_with_sites(site_coords, projection_value, check_value, region_site_names, site_data_store)
+        site_data = create_site_data_with_values(site_data_store, data_types, local_file, time_value)
+        disabled = True if len(site_data.data) == 0 else False
+        return site_map, site_data, disabled
+    
+    
