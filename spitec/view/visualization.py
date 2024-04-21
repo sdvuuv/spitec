@@ -22,14 +22,14 @@ class PointColor(Enum):
     GREEN = "green"
 
 
-def create_layout(
-    site_map: go.Figure,
-    site_data: go.Figure,
-    projection_radio: dbc.RadioItems,
-    time_slider: dcc.RangeSlider,
-    checkbox_site: dbc.Checkbox,
-    selection_data_types: dbc.Select,
-) -> html.Div:
+def create_layout() -> html.Div:
+    site_map = create_site_map()
+    site_data = create_site_data()
+
+    projection_radio = create_projection_radio()
+    time_slider = create_time_slider()
+    checkbox_site = create_checkbox_site()
+    selection_data_types = create_selection_data_types()
     left_side = _create_left_side(site_map, projection_radio, checkbox_site)
     data_tab = _create_data_tab(site_data, time_slider, selection_data_types)
     tab_lat_lon = _create_selection_tab_lat_lon()
@@ -39,8 +39,11 @@ def create_layout(
     size_data = 7
     layout = html.Div(
         [
-            dcc.Store(id="site-names-store", storage_type="session"),
+            dcc.Store(id="region-site-names-store", storage_type="session"),
             dcc.Store(id="local-file-store", storage_type="session"),
+            dcc.Store(id="site-coords-store", storage_type="session"),
+            dcc.Store(id="site-data-store", storage_type="session"),
+            dcc.Location(id='url', refresh=False),
             dbc.Row(
                 [
                     dbc.Col(
@@ -318,13 +321,19 @@ def create_projection_radio() -> dbc.RadioItems:
         id="projection-radio",
         inline=True,
         value=ProjectionType.MERCATOR.value,
+        persistence=True,
+        persistence_type="session",
     )
     return radio_items
 
 
 def create_checkbox_site() -> dbc.Checkbox:
     checkbox = dbc.Checkbox(
-        id="hide-show-site", label=language["hide-show-site"], value=True
+        id="hide-show-site",
+        label=language["hide-show-site"],
+        value=True,
+        persistence=True,
+        persistence_type="session",
     )
     return checkbox
 
@@ -388,6 +397,8 @@ def create_selection_data_types() -> dbc.Select:
         options=options,
         value=DataProducts.dtec_2_10.name,
         style={"width": "250px", "margin-right": "20px"},
+        persistence=DataProducts.dtec_2_10.name,
+        persistence_type="session",
     )
     return select
 
@@ -420,6 +431,8 @@ def create_time_slider() -> dcc.RangeSlider:
             "template": "{value}:00",
         },
         disabled=True,
+        persistence=True,
+        persistence_type="session",
     )
     return time_slider
 

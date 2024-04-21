@@ -17,6 +17,10 @@ h5py = "^3.10.0"
 [tool.poetry.group.dev.dependencies]
 pytest = "^8.0.2"
 
+
+[tool.poetry.group.deploy.dependencies]
+gunicorn = "^22.0.0"
+
 [build-system]
 requires = ["poetry-core"]
 build-backend = "poetry.core.masonry.api"
