@@ -1,6 +1,5 @@
 from dash.dependencies import Input, Output, State
 import plotly.graph_objects as go
-# from ..view import PointColor, ProjectionType, languages
 from ..view import *
 from ..processing import *
 from .figure import create_map_with_sites, create_site_data_with_values
@@ -34,9 +33,9 @@ def register_callbacks(
     def update_map_projection(
         projection_value: ProjectionType, 
         check_value: bool,
-        region_site_names: list[str],
+        region_site_names: dict[str, int],
         site_coords: dict[Site, dict[Coordinate, float]],
-        site_data_store: list[str]
+        site_data_store: dict[str, int],
     ) -> go.Figure:
         site_map = create_map_with_sites(site_coords, projection_value, check_value, region_site_names, site_data_store)
         return site_map
@@ -67,34 +66,27 @@ def register_callbacks(
         local_file: str,
         projection_value: ProjectionType, 
         check_value: bool,
-        region_site_names: list[str],
+        region_site_names: dict[str, int],
         site_coords: dict[Site, dict[Coordinate, float]],
         data_types: str,
-        site_data_store: list[str],
+        site_data_store: dict[str, int],
         time_value: list[int],
     ) -> list[go.Figure | None | bool | dcc.RangeSlider]:
-        site_map = create_map_with_sites(site_coords, projection_value, check_value, region_site_names, site_data_store)
-        
         if clickData is not None:
             site_name = clickData["points"][0]["text"]
             if site_data_store is None:
-                site_data_store = []
+                site_data_store = {}
+
+            if site_name in site_data_store.keys():
+                del site_data_store[site_name]
+            else:
+                site_idx = clickData["points"][0]["pointIndex"]
+                site_data_store[site_name] = site_idx
             
-            site_idx = clickData["points"][0]["pointIndex"]
-            site_color = site_map.data[0].marker.color[site_idx]
-            if (
-                site_color == PointColor.SILVER.value
-                or site_color == PointColor.GREEN.value
-            ):
-                site_data_store.append(site_name)
-            elif site_color == PointColor.RED.value:
-                site_data_store.remove(site_name)
         site_map = create_map_with_sites(site_coords, projection_value, check_value, region_site_names, site_data_store)
         site_data = create_site_data_with_values(site_data_store, data_types, local_file, time_value)
 
         disabled = True if len(site_data.data) == 0 else False
-
-        site_data_store = site_data.layout.yaxis.ticktext
         return site_map, None, site_data, disabled, site_data_store
 
 
@@ -114,7 +106,7 @@ def register_callbacks(
     def change_xaxis(
         time_value: list[int],
         data_types: str,
-        site_data_store: list[str],
+        site_data_store: dict[str, int],
         local_file: str,
     ) -> list[go.Figure | dcc.RangeSlider]:
         site_data = create_site_data_with_values(site_data_store, data_types, local_file, time_value)
@@ -141,7 +133,7 @@ def register_callbacks(
         n: int,
         projection_value: ProjectionType, 
         check_value: bool,
-        region_site_names: list[str],
+        region_site_names: dict[str, int],
         site_coords: dict[Site, dict[Coordinate, float]],
     ) -> list[go.Figure | dcc.RangeSlider]:
         site_data = create_site_data_with_values(None, None, None, None)
@@ -164,9 +156,9 @@ def register_callbacks(
     def hide_show_site(
         check_value: bool, 
         projection_value: ProjectionType,
-        region_site_names: list[str],
+        region_site_names: dict[str, int],
         site_coords: dict[Site, dict[Coordinate, float]],
-        site_data_store: list[str]
+        site_data_store: dict[str, int],
     ) -> go.Figure:
         site_map = create_map_with_sites(site_coords, projection_value, check_value, region_site_names, site_data_store)
         return site_map
@@ -200,12 +192,12 @@ def register_callbacks(
         max_lat: int,
         min_lon: int,
         max_lon: int,
-        region_site_names: list[str],
+        region_site_names: dict[str, int],
         projection_value: ProjectionType,
         check_value: bool,
         site_coords: dict[Site, dict[Coordinate, float]],
-        site_data_store: list[str]
-    ) -> list[go.Figure | bool | list[str]]:
+        site_data_store: dict[str, int],
+    ) -> list[go.Figure | bool | dict[str, int]]:
         return_value_list = [None, False, False, False, False, region_site_names]
         sites = region_site_names
 
@@ -215,14 +207,20 @@ def register_callbacks(
         check_region_value(max_lon, 4, return_value_list)
 
         if True in return_value_list or site_coords is None:
-            return_value_list[0] = create_map_with_sites(site_coords, projection_value, check_value, sites, site_data_store)
+            return_value_list[0] = create_map_with_sites(site_coords, projection_value, check_value, region_site_names, site_data_store)
             return return_value_list
         else:
             sites_by_region = select_sites_by_region(
                 site_coords, min_lat, max_lat, min_lon, max_lon
             )
-            sites, _, _ = get_namelatlon_arrays(sites_by_region)
-            return_value_list[-1] = sites
+            if len(sites_by_region) > 0:
+                tmp_sites, _, _ = get_namelatlon_arrays(sites_by_region)
+
+                keys = list(site_coords.keys())
+                sites = dict()
+                for site in tmp_sites:
+                    sites[site] = keys.index(site)
+                return_value_list[-1] = sites
         return_value_list[0] = create_map_with_sites(site_coords, projection_value, check_value, sites, site_data_store)
         return return_value_list
 
@@ -260,12 +258,12 @@ def register_callbacks(
         distance: int,
         lat: int,
         lon: int,
-        region_site_names: list[str],
+        region_site_names: dict[str, int],
         projection_value: ProjectionType,
         check_value: bool,
         site_coords: dict[Site, dict[Coordinate, float]],
-        site_data_store: list[str]
-    ) -> list[go.Figure | bool | list[str]]:
+        site_data_store: dict[str, int],
+    ) -> list[go.Figure | bool | dict[str, int]]:
         return_value_list = [None, False, False, False, region_site_names]
         sites = region_site_names
 
@@ -274,7 +272,7 @@ def register_callbacks(
         check_region_value(lon, 3, return_value_list)
 
         if True in return_value_list or site_coords is None:
-            return_value_list[0] = create_map_with_sites(site_coords, projection_value, check_value, sites, site_data_store)
+            return_value_list[0] = create_map_with_sites(site_coords, projection_value, check_value, region_site_names, site_data_store)
             return return_value_list
         else:
             central_point = dict()
@@ -283,8 +281,14 @@ def register_callbacks(
             sites_by_region = select_sites_in_circle(
                 site_coords, central_point, distance
             )
-            sites, _, _ = get_namelatlon_arrays(sites_by_region)
-            return_value_list[-1] = sites
+            if len(sites_by_region) > 0:
+                tmp_sites, _, _ = get_namelatlon_arrays(sites_by_region)
+                
+                keys = list(site_coords.keys())
+                sites = dict()
+                for site in tmp_sites:
+                    sites[site] = keys.index(site)
+                return_value_list[-1] = sites
         return_value_list[0] = create_map_with_sites(site_coords, projection_value, check_value, sites, site_data_store)
         return return_value_list
 
@@ -311,7 +315,7 @@ def register_callbacks(
         projection_value: ProjectionType,
         check_value: bool,
         site_coords: dict[Site, dict[Coordinate, float]],
-        site_data_store: list[str]
+        site_data_store: dict[str, int],
     ) -> list[go.Figure | None]:
         site_map = create_map_with_sites(site_coords, projection_value, check_value, None, site_data_store)
         return site_map, None
@@ -463,7 +467,7 @@ def register_callbacks(
     def change_data_types(
         data_types: str, 
         local_file: str,
-        site_data_store: list[str],
+        site_data_store: dict[str, int],
         time_value: list[int],
     ) -> go.Figure:
         site_data = create_site_data_with_values(site_data_store, data_types, local_file, time_value)
@@ -491,9 +495,9 @@ def register_callbacks(
         pathname: str,
         projection_value: ProjectionType, 
         check_value: bool,
-        region_site_names: list[str],
+        region_site_names: dict[str, int],
         site_coords: dict[Site, dict[Coordinate, float]],
-        site_data_store: list[str],
+        site_data_store: dict[str, int],
         local_file: str,
         time_value: list[int],
         data_types: str, 

@@ -14,6 +14,7 @@ class Sat(str):
 def retrieve_data(
     local_file: str | Path,
     sites: list[Site],
+    dataproduct: DataProducts
 ) -> dict[Site, dict[Sat, dict[DataProduct, NDArray]]]:
     f = h5py.File(local_file)
     data = dict()
@@ -21,13 +22,12 @@ def retrieve_data(
         if not site in f:
             continue
         data[site] = dict()
-        for sat in f[site].keys():
-            timestamps = f[site][sat][DataProducts.timestamp.hdf_name][:]
-            times = [datetime.fromtimestamp(t, timezone.utc) for t in timestamps]
-            data[site][sat] = {DataProducts.time: np.array(times)}
-            for dataproduct in DataProducts:
-                if dataproduct is DataProducts.time:
-                    continue
-                data[site][sat][dataproduct] = f[site][sat][dataproduct.hdf_name][:]
+
+        sat = list(f[site].keys())[0]
+        timestamps = f[site][sat][DataProducts.timestamp.hdf_name][:]
+        times = [datetime.fromtimestamp(t, timezone.utc) for t in timestamps]
+        data[site][sat] = {DataProducts.time: np.array(times)}
+        data[site][sat][dataproduct] = f[site][sat][dataproduct.hdf_name][:]
+            
     f.close()
     return data
