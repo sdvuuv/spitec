@@ -14,20 +14,40 @@ class Sat(str):
 def retrieve_data(
     local_file: str | Path,
     sites: list[Site],
-    dataproduct: DataProducts
-) -> dict[Site, dict[Sat, dict[DataProduct, NDArray]]]:
+    sat: Sat,
+    dataproduct: DataProducts,
+) -> list[dict[Site, dict[Sat, dict[DataProduct, NDArray]]], dict[str, bool]]:
     f = h5py.File(local_file)
     data = dict()
+    is_satellite = dict()
     for site in sites:
         if not site in f:
             continue
         data[site] = dict()
-
-        sat = list(f[site].keys())[0]
-        timestamps = f[site][sat][DataProducts.timestamp.hdf_name][:]
+        satellites = list(f[site].keys())
+        sat_tmp = sat
+        if sat is None or sat not in satellites:
+            sat_tmp = list(f[site].keys())[0]
+            is_satellite[site] = False
+        else:
+            is_satellite[site] = True
+        timestamps = f[site][sat_tmp][DataProducts.timestamp.hdf_name][:]
         times = [datetime.fromtimestamp(t, timezone.utc) for t in timestamps]
-        data[site][sat] = {DataProducts.time: np.array(times)}
-        data[site][sat][dataproduct] = f[site][sat][dataproduct.hdf_name][:]
-            
+        data[site][sat_tmp] = {DataProducts.time: np.array(times)}
+        data[site][sat_tmp][dataproduct] = f[site][sat_tmp][
+            dataproduct.hdf_name
+        ][:]
     f.close()
-    return data
+    return data, is_satellite
+
+
+def get_satellites(local_file: str | Path) -> NDArray:
+    satellites = []
+    f = h5py.File(local_file)
+    for site in f:
+        sats = list(f[site].keys())
+        satellites.extend(sats)
+    satellites = np.array(satellites)
+    satellites = np.unique(satellites)
+    f.close()
+    return satellites

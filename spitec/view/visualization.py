@@ -23,15 +23,8 @@ class PointColor(Enum):
 
 
 def create_layout() -> html.Div:
-    site_map = create_site_map()
-    site_data = create_site_data()
-
-    projection_radio = create_projection_radio()
-    time_slider = create_time_slider()
-    checkbox_site = create_checkbox_site()
-    selection_data_types = create_selection_data_types()
-    left_side = _create_left_side(site_map, projection_radio, checkbox_site)
-    data_tab = _create_data_tab(site_data, time_slider, selection_data_types)
+    left_side = _create_left_side()
+    data_tab = _create_data_tab()
     tab_lat_lon = _create_selection_tab_lat_lon()
     tab_great_circle_distance = _create_selection_tab_great_circle_distance()
 
@@ -43,7 +36,8 @@ def create_layout() -> html.Div:
             dcc.Store(id="local-file-store", storage_type="session"),
             dcc.Store(id="site-coords-store", storage_type="session"),
             dcc.Store(id="site-data-store", storage_type="session"),
-            dcc.Location(id='url', refresh=False),
+            dcc.Store(id="satellites-options-store", storage_type="session"),
+            dcc.Location(id="url", refresh=False),
             dbc.Row(
                 [
                     dbc.Col(
@@ -103,11 +97,10 @@ def create_layout() -> html.Div:
     return layout
 
 
-def _create_left_side(
-    site_map: go.Figure,
-    projection_radio: dbc.RadioItems,
-    checkbox_site: dbc.Checkbox,
-) -> list[dbc.Row]:
+def _create_left_side() -> list[dbc.Row]:
+    site_map = create_site_map()
+    projection_radio = create_projection_radio()
+    checkbox_site = create_checkbox_site()
     download_window = _create_download_window()
     open_window = _create_open_window()
     left_side = [
@@ -187,19 +180,22 @@ def _create_download_window() -> html.Div:
                             html.Div(
                                 language["download_window"]["file-size"],
                                 id="file-size",
-                                style={"font-size": "18px", "margin-top": "20px"},
+                                style={
+                                    "font-size": "18px",
+                                    "margin-top": "20px",
+                                },
                             ),
                             html.Div(
                                 [
                                     dbc.Button(
                                         language["buttons"]["check-file-size"],
                                         id="check-file-size",
-                                        style={"margin-right": "10px"}
+                                        style={"margin-right": "10px"},
                                     ),
                                     dbc.Button(
                                         language["buttons"]["download"],
                                         id="download-file",
-                                        style={"margin-left": "10px"}
+                                        style={"margin-left": "10px"},
                                     ),
                                 ],
                                 style={
@@ -338,11 +334,11 @@ def create_checkbox_site() -> dbc.Checkbox:
     return checkbox
 
 
-def _create_data_tab(
-    site_data: go.Figure,
-    time_slider: dcc.RangeSlider,
-    selection_data_types: dbc.Select,
-) -> list[dbc.Row]:
+def _create_data_tab() -> list[dbc.Row]:
+    site_data = create_site_data()
+    time_slider = create_time_slider()
+    selection_data_types = create_selection_data_types()
+    selection_satellites = create_empty_selection_satellites()
     data_tab = [
         dbc.Row(
             dcc.Graph(id="graph-site-data", figure=site_data),
@@ -356,6 +352,7 @@ def _create_data_tab(
             [
                 dbc.Col(
                     [
+                        selection_satellites,
                         selection_data_types,
                         dbc.Button(
                             language["buttons"]["clear-all"],
@@ -403,14 +400,35 @@ def create_selection_data_types() -> dbc.Select:
     return select
 
 
+def create_empty_selection_satellites() -> dbc.Select:
+    select = dbc.Select(
+        id="selection-satellites",
+        options=[],
+        placeholder=language["data-tab"]["selection-satellites"],
+        style={"width": "150px", "margin-right": "20px"},
+        persistence=True,
+        persistence_type="session",
+    )
+    return select
+
+
 def create_site_data() -> go.Figure:
     site_data = go.Figure()
 
     site_data.update_layout(
         title=language["data-tab"]["graph-site-data"]["title"],
         title_font=dict(size=24, color="black"),
+        plot_bgcolor="white",
         margin=dict(l=0, t=60, r=0, b=0),
-        xaxis=dict(title=language["data-tab"]["graph-site-data"]["xaxis"]),
+        xaxis=dict(
+            title=language["data-tab"]["graph-site-data"]["xaxis"],
+            gridcolor="#E1E2E2",
+            linecolor="black",
+        ),
+        yaxis=dict(
+            gridcolor="#E1E2E2",
+            linecolor="black",
+        ),
     )
     return site_data
 

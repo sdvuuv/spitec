@@ -24,6 +24,7 @@ languages = {
                 "title": "Данные",
                 "xaxis": "Время",
             },
+            "selection-satellites": "Спутник",
         },
         "tab-lat-lon": {
             "label": "Выборка по широте и долготе",
@@ -76,6 +77,7 @@ languages = {
                 "title": "Data products series",
                 "xaxis": "Time",
             },
+            "selection-satellites": "Satellite",
         },
         "tab-lat-lon": {
             "label": "Sampling by lat. and lon.",
