@@ -16,18 +16,23 @@ def create_map_with_sites(
 
     if projection_value != site_map.layout.geo.projection.type:
         site_map.update_layout(geo=dict(projection_type=projection_value))
-    if check_value:
-        site_map.data[0].mode = "markers+text"
-    else:
-        site_map.data[0].mode = "markers"
     if site_coords is not None:
         site_array, lat_array, lon_array = get_namelatlon_arrays(site_coords)
+
+        if check_value:
+            site_map.data[0].text = [site.upper() for site in site_array]
+        elif site_data_store is not None:
+            sites_name_lower = list(site_data_store.keys())
+            site_map.data[0].text = [
+                site.upper() if site in sites_name_lower else "" for site in site_array
+            ]
+        else:
+            site_map.data[0].text = [""] * site_array.size
 
         colors = np.array([PointColor.SILVER.value] * site_array.shape[0])
 
         site_map.data[0].lat = lat_array
         site_map.data[0].lon = lon_array
-        site_map.data[0].text = [site.upper() for site in site_array]
         site_map.data[0].marker.color = colors
 
         _change_points_on_map(region_site_names, site_data_store, site_map)
@@ -124,12 +129,11 @@ def _add_lines(
     dataproduct: DataProducts,
     local_file: str,
 ) -> None:
-    sites_name_lower = list(map(str.lower, sites_name))
     site_data_tmp, is_satellite = retrieve_data(
-        local_file, sites_name_lower, sat, dataproduct
+        local_file, sites_name, sat, dataproduct
     )
     scatters = []
-    for i, name in enumerate(sites_name_lower):
+    for i, name in enumerate(sites_name):
         if sat is None or not is_satellite[name]:
             sat_tmp = list(site_data_tmp[name].keys())[0]
 
@@ -164,7 +168,7 @@ def _add_lines(
     site_data.layout.yaxis.tickvals = [
         SHIFT * i for i in range(len(sites_name))
     ]
-    site_data.layout.yaxis.ticktext = sites_name
+    site_data.layout.yaxis.ticktext = list(map(str.upper, sites_name))
 
 
 def cteate_new_time_slider(site_data: go.Figure, time_value: list[int]):

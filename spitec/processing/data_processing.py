@@ -27,7 +27,7 @@ def retrieve_data(
         satellites = list(f[site].keys())
         sat_tmp = sat
         if sat is None or sat not in satellites:
-            sat_tmp = list(f[site].keys())[0]
+            sat_tmp = satellites[0]
             is_satellite[site] = False
         else:
             is_satellite[site] = True

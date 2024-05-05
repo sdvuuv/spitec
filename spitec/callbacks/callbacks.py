@@ -3,10 +3,8 @@ import plotly.graph_objects as go
 from ..view import *
 from ..processing import *
 from .figure import create_map_with_sites, create_site_data_with_values
-from datetime import datetime, timezone
 import dash
 from dash import dcc
-import dash_bootstrap_components as dbc
 from pathlib import Path
 from numpy.typing import NDArray
 import numpy as np
@@ -79,14 +77,14 @@ def register_callbacks(app: dash.Dash) -> None:
         sat: Sat,
     ) -> list[go.Figure | None | bool | dcc.RangeSlider]:
         if clickData is not None:
-            site_name = clickData["points"][0]["text"]
+            pointIndex = clickData["points"][0]['pointIndex']
+            site_name = list(site_coords.keys())[pointIndex]
             if site_data_store is None:
                 site_data_store = {}
             if site_name in site_data_store.keys():
                 del site_data_store[site_name]
             else:
-                site_idx = clickData["points"][0]["pointIndex"]
-                site_data_store[site_name] = site_idx
+                site_data_store[site_name] = pointIndex
         site_map = create_map_with_sites(
             site_coords,
             projection_value,

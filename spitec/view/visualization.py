@@ -294,11 +294,6 @@ def create_site_map() -> go.Figure:
     )
     figure.update_geos(
         landcolor="white",
-        # landcolor="LightGreen",
-        # showocean=True,
-        # oceancolor="LightBlue",
-        # showcountries=True,
-        # countrycolor="Black",
     )
 
     return figure
