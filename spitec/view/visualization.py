@@ -113,13 +113,13 @@ def _create_left_side() -> list[dbc.Row]:
                             open_window,
                             style={"margin-left": "15px"},
                         ),
-                        html.Div(
-                            dbc.Button(
-                                language["buttons"]["settings"],
-                                id="settings",
-                            ),
-                            style={"margin-left": "15px"},
-                        ),
+                        # html.Div(
+                        #     dbc.Button(
+                        #         language["buttons"]["settings"],
+                        #         id="settings",
+                        #     ),
+                        #     style={"margin-left": "15px"},
+                        # ),
                     ],
                     style={"display": "flex", "justify-content": "flex-start"},
                 ),
@@ -334,6 +334,7 @@ def _create_data_tab() -> list[dbc.Row]:
     time_slider = create_time_slider()
     selection_data_types = create_selection_data_types()
     selection_satellites = create_empty_selection_satellites()
+    input_shift = create_input_shift()
     data_tab = [
         dbc.Row(
             dcc.Graph(id="graph-site-data", figure=site_data),
@@ -349,6 +350,7 @@ def _create_data_tab() -> list[dbc.Row]:
                     [
                         selection_satellites,
                         selection_data_types,
+                        input_shift,
                         dbc.Button(
                             language["buttons"]["clear-all"],
                             id="clear-all",
@@ -363,6 +365,19 @@ def _create_data_tab() -> list[dbc.Row]:
         ),
     ]
     return data_tab
+
+
+def create_input_shift() -> dbc.Input:
+    input = dbc.Input(
+        id="input-shift",
+        type="number",
+        step="0.5",
+        value=-0.5,
+        persistence=-0.5,
+        persistence_type="session",
+        style={"width": "80px", "margin-right": "20px"},
+    )
+    return input
 
 
 def create_selection_data_types() -> dbc.Select:

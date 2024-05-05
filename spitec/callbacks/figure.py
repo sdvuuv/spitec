@@ -2,8 +2,6 @@ from ..view import *
 from ..processing import *
 from datetime import datetime, timezone
 
-SHIFT = -0.5
-
 
 def create_map_with_sites(
     site_coords: dict[Site, dict[Coordinate, float]],
@@ -24,11 +22,11 @@ def create_map_with_sites(
         elif site_data_store is not None:
             sites_name_lower = list(site_data_store.keys())
             site_map.data[0].text = [
-                site.upper() if site in sites_name_lower else "" for site in site_array
+                site.upper() if site in sites_name_lower else ""
+                for site in site_array
             ]
         else:
             site_map.data[0].text = [""] * site_array.size
-
         colors = np.array([PointColor.SILVER.value] * site_array.shape[0])
 
         site_map.data[0].lat = lat_array
@@ -61,9 +59,12 @@ def create_site_data_with_values(
     data_types: str,
     local_file: str,
     time_value: list[int],
+    shift: float,
 ) -> go.Figure:
     site_data = create_site_data()
 
+    if shift is None or shift == 0:
+        shift = -0.5
     if site_data_store is not None:
         dataproduct = _define_data_type(data_types)
         _add_lines(
@@ -72,11 +73,71 @@ def create_site_data_with_values(
             sat,
             dataproduct,
             local_file,
+            shift,
         )
         if len(site_data.data) > 0:
             limit = create_limit_xaxis(time_value, site_data)
             site_data.update_layout(xaxis=dict(range=[limit[0], limit[1]]))
     return site_data
+
+
+def _define_data_type(data_types: str) -> DataProducts:
+    dataproduct = DataProducts.dtec_2_10
+    for name_data in DataProducts.__members__:
+        if data_types == name_data:
+            dataproduct = DataProducts.__members__[name_data]
+            break
+    return dataproduct
+
+
+def _add_lines(
+    site_data: go.Figure,
+    sites_name: list[Site],
+    sat: Sat,
+    dataproduct: DataProducts,
+    local_file: str,
+    shift: float,
+) -> None:
+    site_data_tmp, is_satellite = retrieve_data(
+        local_file, sites_name, sat, dataproduct
+    )
+    scatters = []
+    for i, name in enumerate(sites_name):
+        if sat is None or not is_satellite[name]:
+            sat_tmp = list(site_data_tmp[name].keys())[0]
+
+            vals = site_data_tmp[name][sat_tmp][dataproduct]
+            times = site_data_tmp[name][sat_tmp][DataProducts.time]
+            vals_tmp = np.zeros_like(vals)
+
+            scatters.append(
+                go.Scatter(
+                    x=times,
+                    y=vals_tmp + shift * i,
+                    mode="lines",
+                    name=name.upper(),
+                    line=dict(color="gray"),
+                )
+            )
+        else:
+            vals = site_data_tmp[name][sat][dataproduct]
+            times = site_data_tmp[name][sat][DataProducts.time]
+
+            scatters.append(
+                go.Scatter(
+                    x=times,
+                    y=vals + shift * i,
+                    mode="lines",
+                    name=name.upper(),
+                )
+            )
+    site_data.add_traces(scatters)
+
+    site_data.layout.yaxis.tickmode = "array"
+    site_data.layout.yaxis.tickvals = [
+        shift * i for i in range(len(sites_name))
+    ]
+    site_data.layout.yaxis.ticktext = list(map(str.upper, sites_name))
 
 
 def create_limit_xaxis(
@@ -111,69 +172,3 @@ def create_limit_xaxis(
         tzinfo=timezone.utc,
     )
     return (start_limit, end_limit)
-
-
-def _define_data_type(data_types: str) -> DataProducts:
-    dataproduct = DataProducts.dtec_2_10
-    for name_data in DataProducts.__members__:
-        if data_types == name_data:
-            dataproduct = DataProducts.__members__[name_data]
-            break
-    return dataproduct
-
-
-def _add_lines(
-    site_data: go.Figure,
-    sites_name: list[Site],
-    sat: Sat,
-    dataproduct: DataProducts,
-    local_file: str,
-) -> None:
-    site_data_tmp, is_satellite = retrieve_data(
-        local_file, sites_name, sat, dataproduct
-    )
-    scatters = []
-    for i, name in enumerate(sites_name):
-        if sat is None or not is_satellite[name]:
-            sat_tmp = list(site_data_tmp[name].keys())[0]
-
-            vals = site_data_tmp[name][sat_tmp][dataproduct]
-            times = site_data_tmp[name][sat_tmp][DataProducts.time]
-            vals_tmp = np.zeros_like(vals)
-
-            scatters.append(
-                go.Scatter(
-                    x=times,
-                    y=vals_tmp + SHIFT * i,
-                    mode="lines",
-                    name=name.upper(),
-                    line=dict(color="gray"),
-                )
-            )
-        else:
-            vals = site_data_tmp[name][sat][dataproduct]
-            times = site_data_tmp[name][sat][DataProducts.time]
-
-            scatters.append(
-                go.Scatter(
-                    x=times,
-                    y=vals + SHIFT * i,
-                    mode="lines",
-                    name=name.upper(),
-                )
-            )
-    site_data.add_traces(scatters)
-
-    site_data.layout.yaxis.tickmode = "array"
-    site_data.layout.yaxis.tickvals = [
-        SHIFT * i for i in range(len(sites_name))
-    ]
-    site_data.layout.yaxis.ticktext = list(map(str.upper, sites_name))
-
-
-def cteate_new_time_slider(site_data: go.Figure, time_value: list[int]):
-    time_slider = create_time_slider()
-    time_slider.disabled = True if len(site_data.data) == 0 else False
-    time_slider.value = [time_value[0], time_value[1]]
-
-    return time_slider

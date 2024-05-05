@@ -7,7 +7,6 @@ import dash
 from dash import dcc
 from pathlib import Path
 from numpy.typing import NDArray
-import numpy as np
 
 
 language = languages["en"]
@@ -61,6 +60,7 @@ def register_callbacks(app: dash.Dash) -> None:
             State("site-data-store", "data"),
             State("time-slider", "value"),
             State("selection-satellites", "value"),
+            State("input-shift", "value"),
         ],
         prevent_initial_call=True,
     )
@@ -75,9 +75,10 @@ def register_callbacks(app: dash.Dash) -> None:
         site_data_store: dict[str, int],
         time_value: list[int],
         sat: Sat,
-    ) -> list[go.Figure | None | bool | dcc.RangeSlider]:
+        shift: float,
+    ) -> list[go.Figure | None | bool | dict[str, int]]:
         if clickData is not None:
-            pointIndex = clickData["points"][0]['pointIndex']
+            pointIndex = clickData["points"][0]["pointIndex"]
             site_name = list(site_coords.keys())[pointIndex]
             if site_data_store is None:
                 site_data_store = {}
@@ -93,7 +94,7 @@ def register_callbacks(app: dash.Dash) -> None:
             site_data_store,
         )
         site_data = create_site_data_with_values(
-            site_data_store, sat, data_types, local_file, time_value
+            site_data_store, sat, data_types, local_file, time_value, shift
         )
 
         disabled = True if len(site_data.data) == 0 else False
@@ -110,6 +111,7 @@ def register_callbacks(app: dash.Dash) -> None:
             State("site-data-store", "data"),
             State("local-file-store", "data"),
             State("selection-satellites", "value"),
+            State("input-shift", "value"),
         ],
         prevent_initial_call=True,
     )
@@ -119,9 +121,10 @@ def register_callbacks(app: dash.Dash) -> None:
         site_data_store: dict[str, int],
         local_file: str,
         sat: Sat,
-    ) -> list[go.Figure | dcc.RangeSlider]:
+        shift: float,
+    ) -> list[go.Figure | bool]:
         site_data = create_site_data_with_values(
-            site_data_store, sat, data_types, local_file, time_value
+            site_data_store, sat, data_types, local_file, time_value, shift
         )
         disabled = True if len(site_data.data) == 0 else False
         return site_data, disabled
@@ -148,8 +151,10 @@ def register_callbacks(app: dash.Dash) -> None:
         check_value: bool,
         region_site_names: dict[str, int],
         site_coords: dict[Site, dict[Coordinate, float]],
-    ) -> list[go.Figure | dcc.RangeSlider]:
-        site_data = create_site_data_with_values(None, None, None, None, None)
+    ) -> list[go.Figure | bool | None]:
+        site_data = create_site_data_with_values(
+            None, None, None, None, None, None
+        )
         site_map = create_map_with_sites(
             site_coords, projection_value, check_value, region_site_names, None
         )
@@ -482,7 +487,14 @@ def register_callbacks(app: dash.Dash) -> None:
         filename: str,
         projection_value: ProjectionType,
         check_value: bool,
-    ) -> list[bool | go.Figure | str | dcc.RangeSlider | None | NDArray]:
+    ) -> list[
+        bool
+        | go.Figure
+        | str
+        | dict[Site, dict[Coordinate, float]]
+        | None
+        | list[dict[str, str]]
+    ]:
         local_file = FILE_FOLDER / filename
         site_coords = get_sites_coords(local_file)
 
@@ -514,6 +526,7 @@ def register_callbacks(app: dash.Dash) -> None:
             State("site-data-store", "data"),
             State("time-slider", "value"),
             State("selection-satellites", "value"),
+            State("input-shift", "value"),
         ],
         prevent_initial_call=True,
     )
@@ -523,9 +536,10 @@ def register_callbacks(app: dash.Dash) -> None:
         site_data_store: dict[str, int],
         time_value: list[int],
         sat: Sat,
+        shift: float,
     ) -> go.Figure:
         site_data = create_site_data_with_values(
-            site_data_store, sat, data_types, local_file, time_value
+            site_data_store, sat, data_types, local_file, time_value, shift
         )
         return site_data
 
@@ -537,6 +551,7 @@ def register_callbacks(app: dash.Dash) -> None:
             State("local-file-store", "data"),
             State("site-data-store", "data"),
             State("time-slider", "value"),
+            State("input-shift", "value"),
         ],
         prevent_initial_call=True,
     )
@@ -546,9 +561,35 @@ def register_callbacks(app: dash.Dash) -> None:
         local_file: str,
         site_data_store: dict[str, int],
         time_value: list[int],
-    ):
+        shift: float,
+    ) -> go.Figure:
         site_data = create_site_data_with_values(
-            site_data_store, sat, data_types, local_file, time_value
+            site_data_store, sat, data_types, local_file, time_value, shift
+        )
+        return site_data
+
+    @app.callback(
+        Output("graph-site-data", "figure", allow_duplicate=True),
+        [Input("input-shift", "value")],
+        [
+            State("selection-data-types", "value"),
+            State("local-file-store", "data"),
+            State("site-data-store", "data"),
+            State("time-slider", "value"),
+            State("selection-satellites", "value"),
+        ],
+        prevent_initial_call=True,
+    )
+    def change_shift(
+        shift: float,
+        data_types: str,
+        local_file: str,
+        site_data_store: dict[str, int],
+        time_value: list[int],
+        sat: Sat,
+    ) -> go.Figure:
+        site_data = create_site_data_with_values(
+            site_data_store, sat, data_types, local_file, time_value, shift
         )
         return site_data
 
@@ -571,6 +612,7 @@ def register_callbacks(app: dash.Dash) -> None:
             State("selection-data-types", "value"),
             State("satellites-options-store", "data"),
             State("selection-satellites", "value"),
+            State("input-shift", "value"),
         ],
     )
     def update_all(
@@ -585,7 +627,8 @@ def register_callbacks(app: dash.Dash) -> None:
         data_types: str,
         satellites_options: list[dict[str, str]],
         sat: Sat,
-    ) -> go.Figure:
+        shift: float,
+    ) -> list[go.Figure, bool, list[dict[str, str]]]:
         site_map = create_map_with_sites(
             site_coords,
             projection_value,
@@ -594,7 +637,7 @@ def register_callbacks(app: dash.Dash) -> None:
             site_data_store,
         )
         site_data = create_site_data_with_values(
-            site_data_store, sat, data_types, local_file, time_value
+            site_data_store, sat, data_types, local_file, time_value, shift
         )
         disabled = True if len(site_data.data) == 0 else False
         if satellites_options is None:
