@@ -1,7 +1,15 @@
-import dash
+import diskcache
+from dash import DiskcacheManager, Dash
 from spitec import *
 
-app = dash.Dash(__name__, external_stylesheets=[dbc.themes.FLATLY])
+cache = diskcache.Cache("./cache")
+background_callback_manager = DiskcacheManager(cache)
+
+app = Dash(
+    __name__,
+    background_callback_manager=background_callback_manager,
+    external_stylesheets=[dbc.themes.FLATLY],
+)
 server = app.server
 
 app.layout = create_layout()
@@ -9,4 +17,4 @@ app.layout = create_layout()
 register_callbacks(app)
 
 if __name__ == "__main__":
-    app.run_server(host='0.0.0.0', port=8050)
+    app.run_server(host="0.0.0.0", port=8050)

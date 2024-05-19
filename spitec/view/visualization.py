@@ -99,8 +99,8 @@ def create_layout() -> html.Div:
 
 def _create_left_side() -> list[dbc.Row]:
     site_map = create_site_map()
-    projection_radio = create_projection_radio()
-    checkbox_site = create_checkbox_site()
+    projection_radio = _create_projection_radio()
+    checkbox_site = _create_checkbox_site()
     download_window = _create_download_window()
     open_window = _create_open_window()
     left_side = [
@@ -113,13 +113,6 @@ def _create_left_side() -> list[dbc.Row]:
                             open_window,
                             style={"margin-left": "15px"},
                         ),
-                        # html.Div(
-                        #     dbc.Button(
-                        #         language["buttons"]["settings"],
-                        #         id="settings",
-                        #     ),
-                        #     style={"margin-left": "15px"},
-                        # ),
                     ],
                     style={"display": "flex", "justify-content": "flex-start"},
                 ),
@@ -153,6 +146,7 @@ def _create_left_side() -> list[dbc.Row]:
 
 
 def _create_download_window() -> html.Div:
+    boot_progress_window = _create_boot_progress_window()
     download_window = html.Div(
         [
             dbc.Button(language["buttons"]["download"], id="download"),
@@ -203,6 +197,31 @@ def _create_download_window() -> html.Div:
                                     "margin-top": "20px",
                                 },
                             ),
+                        ]
+                    ),
+                ],
+                id="download-window",
+                is_open=False,
+            ),
+            boot_progress_window,
+        ]
+    )
+    return download_window
+
+
+def _create_boot_progress_window() -> dbc.Modal:
+    modal = dbc.Modal(
+        [
+            dbc.ModalHeader(
+                dbc.ModalTitle(language["boot-progress-window"]["header"]),
+                id="loading-process-modal-header",
+            ),
+            dbc.ModalBody(
+                [
+                    html.Div(
+                        [
+                            html.Div("0%", id="load-per"),
+                            dbc.Progress(id="boot-process", value=0),
                             html.Div(
                                 "",
                                 id="downloaded",
@@ -210,15 +229,26 @@ def _create_download_window() -> html.Div:
                                     "visibility": "hidden",
                                 },
                             ),
-                        ]
+                        ],
+                        style={"text-align": "center"},
                     ),
-                ],
-                id="download-window",
-                is_open=False,
+                    html.Div(
+                        dbc.Button(
+                            language["boot-progress-window"][
+                                "cancel-download"
+                            ],
+                            id="cancel-download",
+                        ),
+                        style={"text-align": "right"},
+                    ),
+                ]
             ),
-        ]
+        ],
+        id="boot-progress-window",
+        is_open=False,
+        backdrop="static",
     )
-    return download_window
+    return modal
 
 
 def _create_open_window() -> html.Div:
@@ -299,7 +329,7 @@ def create_site_map() -> go.Figure:
     return figure
 
 
-def create_projection_radio() -> dbc.RadioItems:
+def _create_projection_radio() -> dbc.RadioItems:
     options = [
         {
             "label": language["projection-radio"][projection.value],
@@ -318,7 +348,7 @@ def create_projection_radio() -> dbc.RadioItems:
     return radio_items
 
 
-def create_checkbox_site() -> dbc.Checkbox:
+def _create_checkbox_site() -> dbc.Checkbox:
     checkbox = dbc.Checkbox(
         id="hide-show-site",
         label=language["hide-show-site"],
@@ -331,10 +361,10 @@ def create_checkbox_site() -> dbc.Checkbox:
 
 def _create_data_tab() -> list[dbc.Row]:
     site_data = create_site_data()
-    time_slider = create_time_slider()
-    selection_data_types = create_selection_data_types()
-    selection_satellites = create_empty_selection_satellites()
-    input_shift = create_input_shift()
+    time_slider = _create_time_slider()
+    selection_data_types = _create_selection_data_types()
+    selection_satellites = _create_empty_selection_satellites()
+    input_shift = _create_input_shift()
     data_tab = [
         dbc.Row(
             dcc.Graph(id="graph-site-data", figure=site_data),
@@ -367,7 +397,7 @@ def _create_data_tab() -> list[dbc.Row]:
     return data_tab
 
 
-def create_input_shift() -> dbc.Input:
+def _create_input_shift() -> dbc.Input:
     input = dbc.Input(
         id="input-shift",
         type="number",
@@ -380,7 +410,7 @@ def create_input_shift() -> dbc.Input:
     return input
 
 
-def create_selection_data_types() -> dbc.Select:
+def _create_selection_data_types() -> dbc.Select:
     options = [
         {
             "label": "2-10 minute TEC variations",
@@ -410,7 +440,7 @@ def create_selection_data_types() -> dbc.Select:
     return select
 
 
-def create_empty_selection_satellites() -> dbc.Select:
+def _create_empty_selection_satellites() -> dbc.Select:
     select = dbc.Select(
         id="selection-satellites",
         options=[],
@@ -443,7 +473,7 @@ def create_site_data() -> go.Figure:
     return site_data
 
 
-def create_time_slider() -> dcc.RangeSlider:
+def _create_time_slider() -> dcc.RangeSlider:
     marks = {i: f"{i:02d}:00" if i % 3 == 0 else "" for i in range(25)}
     time_slider = dcc.RangeSlider(
         id="time-slider",

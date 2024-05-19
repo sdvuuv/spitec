@@ -51,6 +51,10 @@ languages = {
         "open_window": {
             "label": "Файл",
         },
+        "boot-progress-window":{
+            "header": "Загрузка...",
+            "cancel-download": "Отменить",
+        },
     },
     "en": {
         "buttons": {
@@ -103,6 +107,10 @@ languages = {
         },
         "open_window": {
             "label": "File",
+        },
+        "boot-progress-window":{
+            "header": "Loading...",
+            "cancel-download": "Сancel",
         },
     },
 }

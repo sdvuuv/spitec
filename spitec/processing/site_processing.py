@@ -21,13 +21,13 @@ class Coordinate(Enum):
     lon = "longitude"
 
 
-def load_data(filename: str, local_file: str | Path) -> bool:
+def load_data(filename: str, local_file: str | Path):
     url = DOWNLOAD_URL + filename
+    max_load_per = 100
     with open(local_file, "wb") as f:
-        print("Downloading %s" % local_file)
         response = requests.get(url, stream=True)
         if response.status_code != 200:
-            return False
+            response.raise_for_status()
         total_length = response.headers.get("content-length")
 
         if total_length is None:
@@ -39,15 +39,10 @@ def load_data(filename: str, local_file: str | Path) -> bool:
             for chunk in response.iter_content(chunk_size=4096):
                 dl += len(chunk)
                 f.write(chunk)
-                done = int(50 * dl / total_length)
+                done = int(max_load_per * dl / total_length)
                 if done > previous:
-                    sys.stdout.write(
-                        "\r[%s%s]" % ("=" * done, " " * (50 - done))
-                    )
-                    sys.stdout.flush()
+                    yield done
                 previous = done
-            sys.stdout.write("\n")
-    return True
 
 def сheck_file_size(filename: str) -> int:
     url = DOWNLOAD_URL + filename

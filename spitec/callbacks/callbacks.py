@@ -4,9 +4,9 @@ from ..view import *
 from ..processing import *
 from .figure import create_map_with_sites, create_site_data_with_values
 import dash
-from dash import dcc
 from pathlib import Path
 from numpy.typing import NDArray
+import time
 
 
 language = languages["en"]
@@ -393,9 +393,33 @@ def register_callbacks(app: dash.Dash) -> None:
         ],
         [Input("download-file", "n_clicks")],
         [State("date-selection", "date")],
+        background=True,
+        running=[
+            (Output("boot-progress-window", "is_open"), True, True),
+            (Output("boot-progress-window", "backdrop"), "static", True),
+            (Output("download-window", "is_open"), False, False),
+            (
+                Output("loading-process-modal-header", "close_button"),
+                False,
+                True,
+            ),
+            (Output("cancel-download", "disabled"), False, True),
+            (
+                Output("cancel-download", "style"),
+                {"margin-top": "20px"},
+                {"margin-top": "10px"},
+            ),
+        ],
+        cancel=Input("cancel-download", "n_clicks"),
+        progress=[
+            Output("boot-process", "value"),
+            Output("load-per", "children"),
+        ],
         prevent_initial_call=True,
     )
-    def download_file(n1: int, date: str) -> list[dict[str, str] | str]:
+    def download_file(
+        set_progress, n1: int, date: str
+    ) -> list[dict[str, str] | str]:
         text = language["download_window"]["successаfuly"]
         color = "green"
         if date is None:
@@ -408,14 +432,17 @@ def register_callbacks(app: dash.Dash) -> None:
                 text = language["download_window"]["repeat-action"]
             else:
                 local_file.touch()
-                if not load_data(date, local_file):
+                try:
+                    for done in load_data(date, local_file):
+                        set_progress((done, f"{done}%"))
+                except requests.exceptions.HTTPError as err:
                     text = language["download_window"]["error"]
                     local_file.unlink()
         if text != language["download_window"]["successаfuly"]:
             color = "red"
         style = {
             "text-align": "center",
-            "margin-top": "20px",
+            "margin-top": "10px",
             "color": color,
         }
         return style, text
