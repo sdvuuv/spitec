@@ -464,11 +464,15 @@ def create_site_data() -> go.Figure:
             title=language["data-tab"]["graph-site-data"]["xaxis"],
             gridcolor="#E1E2E2",
             linecolor="black",
+            showline=True,
+            mirror=True,
         ),
         yaxis=dict(
             gridcolor="#E1E2E2",
             linecolor="black",
-        ),
+            showline=True,
+            mirror=True,
+        )
     )
     return site_data
 

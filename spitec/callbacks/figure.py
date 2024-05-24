@@ -76,7 +76,7 @@ def create_site_data_with_values(
             shift,
         )
         if len(site_data.data) > 0:
-            limit = create_limit_xaxis(time_value, site_data)
+            limit = _create_limit_xaxis(time_value, site_data)
             site_data.update_layout(xaxis=dict(range=[limit[0], limit[1]]))
     return site_data
 
@@ -113,7 +113,7 @@ def _add_lines(
             scatters.append(
                 go.Scatter(
                     x=times,
-                    y=vals_tmp + shift * i,
+                    y=vals_tmp + shift * (i + 1),
                     mode="lines",
                     name=name.upper(),
                     line=dict(color="gray"),
@@ -126,7 +126,7 @@ def _add_lines(
             scatters.append(
                 go.Scatter(
                     x=times,
-                    y=vals + shift * i,
+                    y=vals + shift * (i + 1),
                     mode="lines",
                     name=name.upper(),
                 )
@@ -135,12 +135,12 @@ def _add_lines(
 
     site_data.layout.yaxis.tickmode = "array"
     site_data.layout.yaxis.tickvals = [
-        shift * i for i in range(len(sites_name))
+        shift * (i + 1) for i in range(len(sites_name))
     ]
     site_data.layout.yaxis.ticktext = list(map(str.upper, sites_name))
 
 
-def create_limit_xaxis(
+def _create_limit_xaxis(
     time_value: list[int], site_data: go.Figure
 ) -> tuple[datetime]:
     date = site_data.data[0].x[0]
