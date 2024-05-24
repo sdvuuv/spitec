@@ -385,6 +385,34 @@ def register_callbacks(app: dash.Dash) -> None:
     ) -> list[bool | dict[str, str] | str]:
         style = {"visibility": "hidden"}
         return not is_open, style, ""
+    
+    @app.callback(
+        [
+            Output("downloading-file-store", "data", allow_duplicate=True),
+            Output("boot-process", "value", allow_duplicate=True),
+            Output("load-per", "children", allow_duplicate=True)
+        ],
+        [Input("boot-progress-window", "is_open")],
+        [
+            State("downloading-file-store", "data"), 
+            State("boot-process", "value"),
+            State("load-per", "children")
+        ],
+        prevent_initial_call=True,
+    )
+    def delete_incomplete_file(
+        is_open: bool, incomplete_file: str, boot_process_value: int, per_value: str
+    ) -> list[None | str | int]:
+        if not is_open:
+            if incomplete_file is not None:
+                local_file = FILE_FOLDER / (incomplete_file + ".h5")
+                try:
+                    f = h5py.File(local_file)
+                    f.close
+                except:
+                    local_file.unlink()
+            return None, 0, "0%"
+        return incomplete_file, boot_process_value, per_value
 
     @app.callback(
         [
@@ -404,11 +432,6 @@ def register_callbacks(app: dash.Dash) -> None:
                 True,
             ),
             (Output("cancel-download", "disabled"), False, True),
-            (
-                Output("cancel-download", "style"),
-                {"margin-top": "20px"},
-                {"margin-top": "10px"},
-            ),
         ],
         cancel=Input("cancel-download", "n_clicks"),
         progress=[
@@ -446,6 +469,17 @@ def register_callbacks(app: dash.Dash) -> None:
             "color": color,
         }
         return style, text
+    
+    @app.callback(
+        Output("downloading-file-store", "data"),
+        [Input("cancel-download", "n_clicks")],
+        [State("date-selection", "date")],
+        prevent_initial_call=True,
+    )
+    def save_file_name(n: int, date: str) -> str:
+        if date is not None:
+            return date
+        return None
 
     @app.callback(
         Output("file-size", "children"),

@@ -37,6 +37,7 @@ def create_layout() -> html.Div:
             dcc.Store(id="site-coords-store", storage_type="session"),
             dcc.Store(id="site-data-store", storage_type="session"),
             dcc.Store(id="satellites-options-store", storage_type="session"),
+            dcc.Store(id="downloading-file-store", storage_type="session"),
             dcc.Location(id="url", refresh=False),
             dbc.Row(
                 [
@@ -239,7 +240,7 @@ def _create_boot_progress_window() -> dbc.Modal:
                             ],
                             id="cancel-download",
                         ),
-                        style={"text-align": "right"},
+                        style={"text-align": "right", "margin-top": "20px"},
                     ),
                 ]
             ),

@@ -41,7 +41,7 @@ languages = {
         },
         "download_window": {
             "label": "Дата",
-            "successаfuly": "Файд загружен",
+            "successаfuly": "Файл загружен",
             "unsuccessаfuly": "Дата введена неверно",
             "repeat-action": "Этот файл уже загружен",
             "error": "Данный файл не существует",
