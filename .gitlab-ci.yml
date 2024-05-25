@@ -8,8 +8,8 @@ deploy:
       if lsof -t -i TCP:8050 > /dev/null; then
         kill $(lsof -t -i TCP:8050)
       fi
-    - poetry install
-    - nohup poetry run python main.py >/dev/null 2>&1 &
+    # - poetry install
+    # - nohup poetry run python main.py >/dev/null 2>&1 &
     - exit 0
   only:
     - main
