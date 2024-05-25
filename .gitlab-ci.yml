@@ -5,11 +5,15 @@ deploy:
   stage: deploy
   script:
     - |
-      if lsof -t -i TCP:8050 > /dev/null; then
-        kill $(lsof -t -i TCP:8050)
+      if [ ! -d "./tmp" ]; then
+        mkdir tmp;
       fi
-    # - poetry install
-    # - nohup poetry run python main.py >/dev/null 2>&1 &
+    - |
+      if [ -f "./tmp/gunicorn.pid" ]; then
+        kill -9 $(cat ./tmp/gunicorn.pid);
+      fi
+    - poetry install
+    - nohup poetry run gunicorn -w 4 -b 0.0.0.0:8050 --pid ./tmp/gunicorn.pid main:server >/dev/null 2>&1 &
     - exit 0
   only:
     - main
