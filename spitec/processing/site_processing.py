@@ -43,6 +43,7 @@ def load_data(filename: str, local_file: str | Path):
                 if done > previous:
                     yield done
                 previous = done
+                
 
 def сheck_file_size(filename: str) -> int:
     url = DOWNLOAD_URL + filename
