@@ -13,7 +13,7 @@ deploy:
         kill -9 $(cat ./tmp/gunicorn.pid);
       fi
     - poetry install
-    - nohup poetry run gunicorn -w 4 -b 0.0.0.0:8050 --pid ./tmp/gunicorn.pid main:server >/dev/null 2>&1 &
+    - nohup poetry run gunicorn -w 4 -b 0.0.0.0:8050 --pid ./tmp/gunicorn.pid main:server >./tmp/log.txt 2>&1 &
     - exit 0
   only:
     - main
