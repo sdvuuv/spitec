@@ -8,7 +8,8 @@ background_callback_manager = DiskcacheManager(cache)
 app = Dash(
     __name__,
     background_callback_manager=background_callback_manager,
-    external_stylesheets=[dbc.themes.FLATLY]
+    external_stylesheets=[dbc.themes.FLATLY],
+    title='Spitec'
 )
 server = app.server
 
