@@ -168,7 +168,7 @@ def register_callbacks(app: dash.Dash) -> None:
             State("projection-radio", "value"),
             State("region-site-names-store", "data"),
             State("site-coords-store", "data"),
-            State("site-data-store", "data"),
+            State("site-data-store", "data")
         ],
         prevent_initial_call=True,
     )
