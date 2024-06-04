@@ -5,15 +5,15 @@ deploy:
   stage: deploy
   script:
     - |
-      if [ ! -d "./tmp" ]; then
-        mkdir tmp;
+      if [ ! -d "./logging" ]; then
+        mkdir logging;
       fi
     - |
-      if [ -f "./tmp/gunicorn.pid" ]; then
-        kill -9 $(cat ./tmp/gunicorn.pid);
+      if [ -f "/tmp/gunicorn.pid" ]; then
+        kill -9 $(cat /tmp/gunicorn.pid);
       fi
     - poetry install
-    - nohup poetry run gunicorn -w 4 -b 0.0.0.0:8050 --pid ./tmp/gunicorn.pid main:server >./tmp/log.txt 2>&1 &
+    - nohup poetry run gunicorn -w 4 -b 0.0.0.0:8050 --pid /tmp/gunicorn.pid main:server >./logging/log.txt 2>&1 &
     - exit 0
   only:
     - main
