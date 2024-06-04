@@ -91,7 +91,7 @@ def register_callbacks(app: dash.Dash) -> None:
             projection_value,
             check_value,
             region_site_names,
-            site_data_store,
+            site_data_store
         )
         site_data = create_site_data_with_values(
             site_data_store, sat, data_types, local_file, time_value, shift
