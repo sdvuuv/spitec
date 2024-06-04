@@ -46,7 +46,7 @@ languages = {
             "repeat-action": "Этот файл уже загружен",
             "error": "Данный файл не существует",
             "file-size": "Размер (Гб): ",
-            "unknown": "неизвестно",
+            "unknown": "Неизвестно",
         },
         "open_window": {
             "label": "Файл",
@@ -103,7 +103,7 @@ languages = {
             "repeat-action": "This file has already been downloaded",
             "error": "This file does not exist",
             "file-size": "Size (Gb): ",
-            "unknown": "unknown",
+            "unknown": "Unknown",
         },
         "open_window": {
             "label": "File",
