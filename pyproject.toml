@@ -17,6 +17,7 @@ h5py = "^3.10.0"
 [tool.poetry.group.dev.dependencies]
 pytest = "^8.0.2"
 coverage = "^7.5.3"
+pytest-mock = "^3.14.0"
 
 
 [tool.poetry.group.deploy.dependencies]
