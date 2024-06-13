@@ -5,7 +5,6 @@ import numpy as np
 from numpy.typing import NDArray
 from numpy import pi, sin, cos, arccos
 import requests
-import sys
 
 
 DOWNLOAD_URL = "https://simurg.space/gen_file?data=obs&date="
