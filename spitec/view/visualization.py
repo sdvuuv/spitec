@@ -38,6 +38,8 @@ def create_layout() -> html.Div:
             dcc.Store(id="site-data-store", storage_type="session"),
             dcc.Store(id="satellites-options-store", storage_type="session"),
             dcc.Store(id="downloading-file-store", storage_type="session"),
+            dcc.Store(id="scale-map-store", storage_type="session", data=1),
+            dcc.Store(id="relayout-map-store", storage_type="session"),
             dcc.Location(id="url", refresh=False),
             dbc.Row(
                 [
@@ -321,7 +323,23 @@ def create_site_map() -> go.Figure:
         title=language["graph-site-map"]["title"],
         title_font=dict(size=24, color="black"),
         margin=dict(l=0, t=60, r=0, b=0),
-        geo=dict(projection_type=ProjectionType.MERCATOR.value),
+        geo=dict(
+            projection_type=ProjectionType.MERCATOR.value,
+            lonaxis=dict(
+                showgrid=True,
+                gridwidth=0.5,
+                gridcolor="LightGrey",
+                tick0=-180,
+                dtick=10,
+            ),
+            lataxis=dict(
+                showgrid=True,
+                gridwidth=0.5,
+                gridcolor="LightGrey",
+                tick0=-90,
+                dtick=5,
+            )
+        ),
     )
     figure.update_geos(
         landcolor="white",

@@ -15,7 +15,11 @@ FILE_FOLDER = Path("data")
 
 def register_callbacks(app: dash.Dash) -> None:
     @app.callback(
-        Output("graph-site-map", "figure", allow_duplicate=True),
+        [
+            Output("graph-site-map", "figure", allow_duplicate=True),
+            Output("scale-map-store", "data", allow_duplicate=True),
+            Output("relayout-map-store", "data", allow_duplicate=True),
+        ],
         [Input("projection-radio", "value")],
         [
             State("hide-show-site", "value"),
@@ -38,8 +42,11 @@ def register_callbacks(app: dash.Dash) -> None:
             check_value,
             region_site_names,
             site_data_store,
+            None,
+            None,
         )
-        return site_map
+        scale_map = 1
+        return site_map, scale_map, None
 
     @app.callback(
         [
@@ -61,6 +68,8 @@ def register_callbacks(app: dash.Dash) -> None:
             State("time-slider", "value"),
             State("selection-satellites", "value"),
             State("input-shift", "value"),
+            State("relayout-map-store", "data"),
+            State("scale-map-store", "data"),
         ],
         prevent_initial_call=True,
     )
@@ -76,6 +85,8 @@ def register_callbacks(app: dash.Dash) -> None:
         time_value: list[int],
         sat: Sat,
         shift: float,
+        relayout_data: dict[str, float],
+        scale_map_store: float,
     ) -> list[go.Figure | None | bool | dict[str, int]]:
         if clickData is not None:
             pointIndex = clickData["points"][0]["pointIndex"]
@@ -91,7 +102,9 @@ def register_callbacks(app: dash.Dash) -> None:
             projection_value,
             check_value,
             region_site_names,
-            site_data_store
+            site_data_store,
+            relayout_data,
+            scale_map_store,
         )
         site_data = create_site_data_with_values(
             site_data_store, sat, data_types, local_file, time_value, shift
@@ -142,6 +155,8 @@ def register_callbacks(app: dash.Dash) -> None:
             State("hide-show-site", "value"),
             State("region-site-names-store", "data"),
             State("site-coords-store", "data"),
+            State("relayout-map-store", "data"),
+            State("scale-map-store", "data"),
         ],
         prevent_initial_call=True,
     )
@@ -151,15 +166,45 @@ def register_callbacks(app: dash.Dash) -> None:
         check_value: bool,
         region_site_names: dict[str, int],
         site_coords: dict[Site, dict[Coordinate, float]],
+        relayout_data: dict[str, float],
+        scale_map_store: float,
     ) -> list[go.Figure | bool | None]:
         site_data = create_site_data_with_values(
             None, None, None, None, None, None
         )
         site_map = create_map_with_sites(
-            site_coords, projection_value, check_value, region_site_names, None
+            site_coords,
+            projection_value,
+            check_value,
+            region_site_names,
+            None,
+            relayout_data,
+            scale_map_store,
         )
         disabled = True
         return site_map, site_data, disabled, None
+
+    @app.callback(
+        [
+            Output("scale-map-store", "data", allow_duplicate=True),
+            Output("relayout-map-store", "data", allow_duplicate=True),
+        ],
+        Input("graph-site-map", "relayoutData"),
+        [
+            State("scale-map-store", "data"),
+            State("relayout-map-store", "data"),
+        ],
+        prevent_initial_call=True,
+    )
+    def change_layout_map(
+        relayout_data: dict[str, float],
+        scale_map_store: float,
+        relayout_data_store: dict[str, float],
+    ):
+        scale_map = relayout_data.get("geo.projection.scale", scale_map_store)
+        if len(relayout_data) == 0 or relayout_data.get("autosize", False):
+            relayout_data = relayout_data_store
+        return scale_map, relayout_data
 
     @app.callback(
         Output("graph-site-map", "figure", allow_duplicate=True),
@@ -168,7 +213,9 @@ def register_callbacks(app: dash.Dash) -> None:
             State("projection-radio", "value"),
             State("region-site-names-store", "data"),
             State("site-coords-store", "data"),
-            State("site-data-store", "data")
+            State("site-data-store", "data"),
+            State("relayout-map-store", "data"),
+            State("scale-map-store", "data"),
         ],
         prevent_initial_call=True,
     )
@@ -178,6 +225,8 @@ def register_callbacks(app: dash.Dash) -> None:
         region_site_names: dict[str, int],
         site_coords: dict[Site, dict[Coordinate, float]],
         site_data_store: dict[str, int],
+        relayout_data: dict[str, float],
+        scale_map_store: float,
     ) -> go.Figure:
         site_map = create_map_with_sites(
             site_coords,
@@ -185,6 +234,8 @@ def register_callbacks(app: dash.Dash) -> None:
             check_value,
             region_site_names,
             site_data_store,
+            relayout_data,
+            scale_map_store,
         )
         return site_map
 
@@ -208,6 +259,8 @@ def register_callbacks(app: dash.Dash) -> None:
             State("hide-show-site", "value"),
             State("site-coords-store", "data"),
             State("site-data-store", "data"),
+            State("relayout-map-store", "data"),
+            State("scale-map-store", "data"),
         ],
         prevent_initial_call=True,
     )
@@ -222,6 +275,8 @@ def register_callbacks(app: dash.Dash) -> None:
         check_value: bool,
         site_coords: dict[Site, dict[Coordinate, float]],
         site_data_store: dict[str, int],
+        relayout_data: dict[str, float],
+        scale_map_store: float,
     ) -> list[go.Figure | bool | dict[str, int]]:
         return_value_list = [
             None,
@@ -245,6 +300,8 @@ def register_callbacks(app: dash.Dash) -> None:
                 check_value,
                 region_site_names,
                 site_data_store,
+                relayout_data,
+                scale_map_store,
             )
             return return_value_list
         else:
@@ -260,7 +317,13 @@ def register_callbacks(app: dash.Dash) -> None:
                     sites[site] = keys.index(site)
                 return_value_list[-1] = sites
         return_value_list[0] = create_map_with_sites(
-            site_coords, projection_value, check_value, sites, site_data_store
+            site_coords,
+            projection_value,
+            check_value,
+            sites,
+            site_data_store,
+            relayout_data,
+            scale_map_store,
         )
         return return_value_list
 
@@ -290,6 +353,8 @@ def register_callbacks(app: dash.Dash) -> None:
             State("hide-show-site", "value"),
             State("site-coords-store", "data"),
             State("site-data-store", "data"),
+            State("relayout-map-store", "data"),
+            State("scale-map-store", "data"),
         ],
         prevent_initial_call=True,
     )
@@ -303,6 +368,8 @@ def register_callbacks(app: dash.Dash) -> None:
         check_value: bool,
         site_coords: dict[Site, dict[Coordinate, float]],
         site_data_store: dict[str, int],
+        relayout_data: dict[str, float],
+        scale_map_store: float,
     ) -> list[go.Figure | bool | dict[str, int]]:
         return_value_list = [None, False, False, False, region_site_names]
         sites = region_site_names
@@ -318,6 +385,8 @@ def register_callbacks(app: dash.Dash) -> None:
                 check_value,
                 region_site_names,
                 site_data_store,
+                relayout_data,
+                scale_map_store,
             )
             return return_value_list
         else:
@@ -336,7 +405,13 @@ def register_callbacks(app: dash.Dash) -> None:
                     sites[site] = keys.index(site)
                 return_value_list[-1] = sites
         return_value_list[0] = create_map_with_sites(
-            site_coords, projection_value, check_value, sites, site_data_store
+            site_coords,
+            projection_value,
+            check_value,
+            sites,
+            site_data_store,
+            relayout_data,
+            scale_map_store,
         )
         return return_value_list
 
@@ -354,6 +429,8 @@ def register_callbacks(app: dash.Dash) -> None:
             State("hide-show-site", "value"),
             State("site-coords-store", "data"),
             State("site-data-store", "data"),
+            State("relayout-map-store", "data"),
+            State("scale-map-store", "data"),
         ],
         prevent_initial_call=True,
     )
@@ -364,9 +441,17 @@ def register_callbacks(app: dash.Dash) -> None:
         check_value: bool,
         site_coords: dict[Site, dict[Coordinate, float]],
         site_data_store: dict[str, int],
+        relayout_data: dict[str, float],
+        scale_map_store: float,
     ) -> list[go.Figure | None]:
         site_map = create_map_with_sites(
-            site_coords, projection_value, check_value, None, site_data_store
+            site_coords,
+            projection_value,
+            check_value,
+            None,
+            site_data_store,
+            relayout_data,
+            scale_map_store,
         )
         return site_map, None
 
@@ -385,23 +470,26 @@ def register_callbacks(app: dash.Dash) -> None:
     ) -> list[bool | dict[str, str] | str]:
         style = {"visibility": "hidden"}
         return not is_open, style, ""
-    
+
     @app.callback(
         [
             Output("downloading-file-store", "data", allow_duplicate=True),
             Output("boot-process", "value", allow_duplicate=True),
-            Output("load-per", "children", allow_duplicate=True)
+            Output("load-per", "children", allow_duplicate=True),
         ],
         [Input("boot-progress-window", "is_open")],
         [
-            State("downloading-file-store", "data"), 
+            State("downloading-file-store", "data"),
             State("boot-process", "value"),
-            State("load-per", "children")
+            State("load-per", "children"),
         ],
         prevent_initial_call=True,
     )
     def delete_incomplete_file(
-        is_open: bool, incomplete_file: str, boot_process_value: int, per_value: str
+        is_open: bool,
+        incomplete_file: str,
+        boot_process_value: int,
+        per_value: str,
     ) -> list[None | str | int]:
         if not is_open:
             if incomplete_file is not None:
@@ -469,7 +557,7 @@ def register_callbacks(app: dash.Dash) -> None:
             "color": color,
         }
         return style, text
-    
+
     @app.callback(
         Output("downloading-file-store", "data"),
         [Input("cancel-download", "n_clicks")],
@@ -534,6 +622,8 @@ def register_callbacks(app: dash.Dash) -> None:
             Output("site-data-store", "data"),
             Output("selection-satellites", "options", allow_duplicate=True),
             Output("satellites-options-store", "data"),
+            Output("scale-map-store", "data", allow_duplicate=True),
+            Output("relayout-map-store", "data", allow_duplicate=True),
         ],
         [Input("open-file", "n_clicks")],
         [
@@ -560,12 +650,13 @@ def register_callbacks(app: dash.Dash) -> None:
         site_coords = get_sites_coords(local_file)
 
         site_map = create_map_with_sites(
-            site_coords, projection_value, check_value, None, None
+            site_coords, projection_value, check_value, None, None, None, None
         )
         site_data = create_site_data()
         satellites = get_satellites(local_file)
         options = [{"label": sat, "value": sat} for sat in satellites]
 
+        scale_map = 1
         return (
             False,
             site_map,
@@ -577,6 +668,8 @@ def register_callbacks(app: dash.Dash) -> None:
             None,
             options,
             options,
+            scale_map,
+            None,
         )
 
     @app.callback(
@@ -660,6 +753,8 @@ def register_callbacks(app: dash.Dash) -> None:
             Output("graph-site-data", "figure"),
             Output("time-slider", "disabled"),
             Output("selection-satellites", "options"),
+            Output("scale-map-store", "data"),
+            Output("relayout-map-store", "data"),
         ],
         [Input("url", "pathname")],
         [
@@ -696,6 +791,8 @@ def register_callbacks(app: dash.Dash) -> None:
             check_value,
             region_site_names,
             site_data_store,
+            None,
+            None,
         )
         site_data = create_site_data_with_values(
             site_data_store, sat, data_types, local_file, time_value, shift
@@ -703,4 +800,12 @@ def register_callbacks(app: dash.Dash) -> None:
         disabled = True if len(site_data.data) == 0 else False
         if satellites_options is None:
             satellites_options = []
-        return site_map, site_data, disabled, satellites_options
+        scale_map = 1
+        return (
+            site_map,
+            site_data,
+            disabled,
+            satellites_options,
+            scale_map,
+            None,
+        )

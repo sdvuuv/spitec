@@ -9,6 +9,8 @@ def create_map_with_sites(
     check_value: bool,
     region_site_names: dict[str, int],
     site_data_store: dict[str, int],
+    relayout_data: dict[str, float],
+    scale_map_store: float,
 ) -> go.Figure:
     site_map = create_site_map()
 
@@ -19,14 +21,23 @@ def create_map_with_sites(
 
         if check_value:
             site_map.data[0].text = [site.upper() for site in site_array]
-        elif site_data_store is not None:
-            sites_name_lower = list(site_data_store.keys())
+        else:
+            if site_data_store is not None:
+                sites_name_lower = list(site_data_store.keys())
+            else:
+                sites_name_lower = []
             site_map.data[0].text = [
                 site.upper() if site in sites_name_lower else ""
                 for site in site_array
             ]
-        else:
-            site_map.data[0].text = [""] * site_array.size
+            site_map.data[0].customdata = [
+                site.upper() if site not in sites_name_lower else ""
+                for site in site_array
+            ]
+            site_map.data[0].hoverinfo = "text"
+            site_map.data[0].hovertemplate = (
+                "%{customdata} (%{lat}, %{lon})<extra></extra>"
+            )
         colors = np.array([PointColor.SILVER.value] * site_array.shape[0])
 
         site_map.data[0].lat = lat_array
@@ -34,7 +45,54 @@ def create_map_with_sites(
         site_map.data[0].marker.color = colors
 
         _change_points_on_map(region_site_names, site_data_store, site_map)
+    if relayout_data is not None:
+        _change_scale_map(
+            site_map, relayout_data, scale_map_store, projection_value
+        )
     return site_map
+
+
+def _change_scale_map(
+    site_map: go.Figure,
+    relayout_data: dict[str, float],
+    scale_map_store: float,
+    projection_value: ProjectionType,
+) -> None:
+    if relayout_data.get("geo.projection.scale", None) is not None:
+        scale = relayout_data.get("geo.projection.scale")
+    else:
+        scale = scale_map_store
+    if projection_value != ProjectionType.ORTHOGRAPHIC.value:
+        site_map.update_layout(
+            geo=dict(
+                projection=dict(
+                    rotation=dict(
+                        lon=relayout_data.get("geo.projection.rotation.lon", 0)
+                    ),
+                    scale=scale,
+                ),
+                center=dict(
+                    lon=relayout_data.get("geo.center.lon", 0),
+                    lat=relayout_data.get("geo.center.lat", 0),
+                ),
+            )
+        )
+    else:
+        site_map.update_layout(
+            geo=dict(
+                projection=dict(
+                    rotation=dict(
+                        lon=relayout_data.get(
+                            "geo.projection.rotation.lon", 0
+                        ),
+                        lat=relayout_data.get(
+                            "geo.projection.rotation.lat", 0
+                        ),
+                    ),
+                    scale=scale,
+                )
+            )
+        )
 
 
 def _change_points_on_map(
@@ -114,21 +172,39 @@ def _add_lines(
                 go.Scatter(
                     x=times,
                     y=vals_tmp + shift * (i + 1),
-                    mode="lines",
+                    customdata=vals_tmp,
+                    mode="markers",
                     name=name.upper(),
                     line=dict(color="gray"),
+                    hoverinfo="text",
+                    hovertemplate="%{x}, %{customdata}<extra></extra>",
+                    marker=dict(
+                        size=2,
+                    ),
                 )
             )
         else:
-            vals = site_data_tmp[name][sat][dataproduct]
+            if (
+                dataproduct == DataProducts.azimuth
+                or dataproduct == DataProducts.elevation
+            ):
+                vals = np.degrees(site_data_tmp[name][sat][dataproduct])
+            else:
+                vals = site_data_tmp[name][sat][dataproduct]
             times = site_data_tmp[name][sat][DataProducts.time]
 
             scatters.append(
                 go.Scatter(
                     x=times,
                     y=vals + shift * (i + 1),
-                    mode="lines",
+                    customdata=vals,
+                    mode="markers",
                     name=name.upper(),
+                    hoverinfo="text",
+                    hovertemplate="%{x}, %{customdata}<extra></extra>",
+                    marker=dict(
+                        size=3,
+                    ),
                 )
             )
     site_data.add_traces(scatters)
