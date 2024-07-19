@@ -120,11 +120,13 @@ def create_site_data_with_values(
     shift: float,
 ) -> go.Figure:
     site_data = create_site_data()
-
-    if shift is None or shift == 0:
-        shift = -0.5
+    
     if site_data_store is not None:
         dataproduct = _define_data_type(data_types)
+        if shift is None or shift == 0:
+            shift = -1
+            if dataproduct in [DataProducts.dtec_2_10, DataProducts.roti, DataProducts.dtec_10_20]:
+                shift = -0.5
         _add_lines(
             site_data,
             list(site_data_store.keys()),

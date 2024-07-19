@@ -673,29 +673,26 @@ def register_callbacks(app: dash.Dash) -> None:
         )
 
     @app.callback(
-        Output("graph-site-data", "figure", allow_duplicate=True),
-        [Input("selection-data-types", "value")],
-        [
-            State("local-file-store", "data"),
-            State("site-data-store", "data"),
-            State("time-slider", "value"),
-            State("selection-satellites", "value"),
-            State("input-shift", "value"),
-        ],
+        Output("input-shift", "value", allow_duplicate=True),
+        Input("selection-data-types", "value"),
+        State("input-shift", "value"),
         prevent_initial_call=True,
     )
     def change_data_types(
         data_types: str,
-        local_file: str,
-        site_data_store: dict[str, int],
-        time_value: list[int],
-        sat: Sat,
         shift: float,
-    ) -> go.Figure:
-        site_data = create_site_data_with_values(
-            site_data_store, sat, data_types, local_file, time_value, shift
-        )
-        return site_data
+    ) -> float:
+        val_shift = shift
+        if shift == 0 or shift == -0.5 or shift == -1:
+            if data_types in [
+                DataProducts.roti.name, 
+                DataProducts.dtec_2_10.name, 
+                DataProducts.dtec_10_20.name
+            ]:
+                val_shift = -0.5
+            else:
+                val_shift = -1
+        return val_shift
 
     @app.callback(
         Output("graph-site-data", "figure", allow_duplicate=True),
