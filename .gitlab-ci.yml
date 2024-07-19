@@ -4,10 +4,6 @@ stages:
 deploy:
   stage: deploy
   script:
-    - |
-      if [ -f "/tmp/gunicorn.pid" ]; then
-        kill -9 $(cat /tmp/gunicorn.pid);
-      fi
     - poetry install
     - |
       if [ ! -d "./logging" ]; then
