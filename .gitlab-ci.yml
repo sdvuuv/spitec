@@ -6,6 +6,7 @@ deploy:
   tags:
     - spitec
   script:
+    - source ~/.bashrc
     - poetry install
     - |
       if [ ! -d "./logging" ]; then
