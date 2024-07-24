@@ -3,7 +3,10 @@ stages:
     
 deploy:
   stage: deploy
+  tags:
+    - spitec
   script:
+    - poetry install
     - |
       if [ ! -d "./logging" ]; then
         mkdir logging;
