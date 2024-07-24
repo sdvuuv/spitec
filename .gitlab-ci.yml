@@ -3,6 +3,8 @@ stages:
     
 deploy:
   stage: deploy
+  tags:
+    - spitec
   script:
     - poetry install
     - |
