@@ -6,4 +6,5 @@ deploy:
   tags:
     - spitec
   script:
-    - poetry self update
+    - curl -sSL https://install.python-poetry.org | python3 -
+    - poetry --version
