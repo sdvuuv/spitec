@@ -6,4 +6,4 @@ deploy:
   tags:
     - spitec
   script:
-    - poetry --version
+    - poetry self update
