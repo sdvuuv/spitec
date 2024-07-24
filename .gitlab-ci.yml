@@ -4,7 +4,6 @@ stages:
 deploy:
   stage: deploy
   script:
-    - poetry install
     - |
       if [ ! -d "./logging" ]; then
         mkdir logging;
