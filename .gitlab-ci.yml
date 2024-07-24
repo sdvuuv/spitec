@@ -9,4 +9,11 @@ deploy:
     - source ~/.bashrc
     - /home/gitlab-runner/.local/bin/poetry --version
     - /home/gitlab-runner/.local/bin/poetry install
+    - |
+      if [ ! -d "./logging" ]; then
+        mkdir logging;
+      fi
+    - nohup poetry run gunicorn -w 4 -b 0.0.0.0:8050 --pid /tmp/gunicorn.pid main:server >./logging/log.txt 2>&1 &
+  only:
+    - main
     
