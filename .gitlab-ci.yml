@@ -7,3 +7,4 @@ deploy:
     - spitec
   script:
     - poetry --version
+    
