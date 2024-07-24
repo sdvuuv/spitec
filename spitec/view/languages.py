@@ -42,7 +42,7 @@ languages = {
         "download_window": {
             "label": "Дата",
             "successаfuly": "Файл загружен",
-            "unsuccessаfuly": "Дата введена неверно",
+            "unsuccessаfuly": "Неверный формат даты",
             "repeat-action": "Этот файл уже загружен",
             "error": "Данный файл не существует",
             "file-size": "Размер (Гб): ",
