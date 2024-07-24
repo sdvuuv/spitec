@@ -7,6 +7,6 @@ deploy:
     - spitec
   script:
     - source ~/.bashrc
-    - poetry --version
-    - poetry install
+    - /home/gitlab-runner/.local/bin/poetry --version
+    - /home/gitlab-runner/.local/bin/poetry install
     
