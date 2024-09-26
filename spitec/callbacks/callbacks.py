@@ -2,7 +2,7 @@ from dash.dependencies import Input, Output, State
 import plotly.graph_objects as go
 from ..view import *
 from ..processing import *
-from .figure import create_map_with_points, create_site_data_with_values
+from .figure import create_map_with_sites, create_site_data_with_values
 import dash
 from pathlib import Path
 from numpy.typing import NDArray
@@ -31,15 +31,15 @@ def register_callbacks(app: dash.Dash) -> None:
     )
     def update_map_projection(
         projection_value: ProjectionType,
-        show_names_site: bool,
+        check_value: bool,
         region_site_names: dict[str, int],
         site_coords: dict[Site, dict[Coordinate, float]],
         site_data_store: dict[str, int],
     ) -> go.Figure:
-        site_map = create_map_with_points(
+        site_map = create_map_with_sites(
             site_coords,
             projection_value,
-            show_names_site,
+            check_value,
             region_site_names,
             site_data_store,
             None,
@@ -77,7 +77,7 @@ def register_callbacks(app: dash.Dash) -> None:
         clickData: dict[str, list[dict[str, float | str | dict]]],
         local_file: str,
         projection_value: ProjectionType,
-        show_names_site: bool,
+        check_value: bool,
         region_site_names: dict[str, int],
         site_coords: dict[Site, dict[Coordinate, float]],
         data_types: str,
@@ -97,10 +97,10 @@ def register_callbacks(app: dash.Dash) -> None:
                 del site_data_store[site_name]
             else:
                 site_data_store[site_name] = pointIndex
-        site_map = create_map_with_points(
+        site_map = create_map_with_sites(
             site_coords,
             projection_value,
-            show_names_site,
+            check_value,
             region_site_names,
             site_data_store,
             relayout_data,
@@ -163,7 +163,7 @@ def register_callbacks(app: dash.Dash) -> None:
     def clear_all(
         n: int,
         projection_value: ProjectionType,
-        show_names_site: bool,
+        check_value: bool,
         region_site_names: dict[str, int],
         site_coords: dict[Site, dict[Coordinate, float]],
         relayout_data: dict[str, float],
@@ -172,10 +172,10 @@ def register_callbacks(app: dash.Dash) -> None:
         site_data = create_site_data_with_values(
             None, None, None, None, None, None
         )
-        site_map = create_map_with_points(
+        site_map = create_map_with_sites(
             site_coords,
             projection_value,
-            show_names_site,
+            check_value,
             region_site_names,
             None,
             relayout_data,
@@ -220,7 +220,7 @@ def register_callbacks(app: dash.Dash) -> None:
         prevent_initial_call=True,
     )
     def hide_show_site(
-        show_names_site: bool,
+        check_value: bool,
         projection_value: ProjectionType,
         region_site_names: dict[str, int],
         site_coords: dict[Site, dict[Coordinate, float]],
@@ -228,10 +228,10 @@ def register_callbacks(app: dash.Dash) -> None:
         relayout_data: dict[str, float],
         scale_map_store: float,
     ) -> go.Figure:
-        site_map = create_map_with_points(
+        site_map = create_map_with_sites(
             site_coords,
             projection_value,
-            show_names_site,
+            check_value,
             region_site_names,
             site_data_store,
             relayout_data,
@@ -272,7 +272,7 @@ def register_callbacks(app: dash.Dash) -> None:
         max_lon: int,
         region_site_names: dict[str, int],
         projection_value: ProjectionType,
-        show_names_site: bool,
+        check_value: bool,
         site_coords: dict[Site, dict[Coordinate, float]],
         site_data_store: dict[str, int],
         relayout_data: dict[str, float],
@@ -294,10 +294,10 @@ def register_callbacks(app: dash.Dash) -> None:
         check_region_value(max_lon, 4, return_value_list)
 
         if True in return_value_list or site_coords is None:
-            return_value_list[0] = create_map_with_points(
+            return_value_list[0] = create_map_with_sites(
                 site_coords,
                 projection_value,
-                show_names_site,
+                check_value,
                 region_site_names,
                 site_data_store,
                 relayout_data,
@@ -316,10 +316,10 @@ def register_callbacks(app: dash.Dash) -> None:
                 for site in tmp_sites:
                     sites[site] = keys.index(site)
                 return_value_list[-1] = sites
-        return_value_list[0] = create_map_with_points(
+        return_value_list[0] = create_map_with_sites(
             site_coords,
             projection_value,
-            show_names_site,
+            check_value,
             sites,
             site_data_store,
             relayout_data,
@@ -365,7 +365,7 @@ def register_callbacks(app: dash.Dash) -> None:
         lon: int,
         region_site_names: dict[str, int],
         projection_value: ProjectionType,
-        show_names_site: bool,
+        check_value: bool,
         site_coords: dict[Site, dict[Coordinate, float]],
         site_data_store: dict[str, int],
         relayout_data: dict[str, float],
@@ -379,10 +379,10 @@ def register_callbacks(app: dash.Dash) -> None:
         check_region_value(lon, 3, return_value_list)
 
         if True in return_value_list or site_coords is None:
-            return_value_list[0] = create_map_with_points(
+            return_value_list[0] = create_map_with_sites(
                 site_coords,
                 projection_value,
-                show_names_site,
+                check_value,
                 region_site_names,
                 site_data_store,
                 relayout_data,
@@ -404,10 +404,10 @@ def register_callbacks(app: dash.Dash) -> None:
                 for site in tmp_sites:
                     sites[site] = keys.index(site)
                 return_value_list[-1] = sites
-        return_value_list[0] = create_map_with_points(
+        return_value_list[0] = create_map_with_sites(
             site_coords,
             projection_value,
-            show_names_site,
+            check_value,
             sites,
             site_data_store,
             relayout_data,
@@ -438,16 +438,16 @@ def register_callbacks(app: dash.Dash) -> None:
         n1: int,
         n2: int,
         projection_value: ProjectionType,
-        show_names_site: bool,
+        check_value: bool,
         site_coords: dict[Site, dict[Coordinate, float]],
         site_data_store: dict[str, int],
         relayout_data: dict[str, float],
         scale_map_store: float,
     ) -> list[go.Figure | None]:
-        site_map = create_map_with_points(
+        site_map = create_map_with_sites(
             site_coords,
             projection_value,
-            show_names_site,
+            check_value,
             None,
             site_data_store,
             relayout_data,
@@ -637,7 +637,7 @@ def register_callbacks(app: dash.Dash) -> None:
         n1: int,
         filename: str,
         projection_value: ProjectionType,
-        show_names_site: bool,
+        check_value: bool,
     ) -> list[
         bool
         | go.Figure
@@ -649,8 +649,8 @@ def register_callbacks(app: dash.Dash) -> None:
         local_file = FILE_FOLDER / filename
         site_coords = get_sites_coords(local_file)
 
-        site_map = create_map_with_points(
-            site_coords, projection_value, show_names_site, None, None, None, None
+        site_map = create_map_with_sites(
+            site_coords, projection_value, check_value, None, None, None, None
         )
         site_data = create_site_data()
         satellites = get_satellites(local_file)
@@ -771,7 +771,7 @@ def register_callbacks(app: dash.Dash) -> None:
     def update_all(
         pathname: str,
         projection_value: ProjectionType,
-        show_names_site: bool,
+        check_value: bool,
         region_site_names: dict[str, int],
         site_coords: dict[Site, dict[Coordinate, float]],
         site_data_store: dict[str, int],
@@ -782,10 +782,10 @@ def register_callbacks(app: dash.Dash) -> None:
         sat: Sat,
         shift: float,
     ) -> list[go.Figure, bool, list[dict[str, str]]]:
-        site_map = create_map_with_points(
+        site_map = create_map_with_sites(
             site_coords,
             projection_value,
-            show_names_site,
+            check_value,
             region_site_names,
             site_data_store,
             None,

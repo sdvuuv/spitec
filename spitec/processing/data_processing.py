@@ -40,17 +40,6 @@ def retrieve_data(
     f.close()
     return data, is_satellite
 
-def get_el_az(local_file: str, site_names: list[Site], sat) -> list[NDArray]:
-    dataproduct_az = DataProducts.azimuth
-    dataproduct_el = DataProducts.elevation
-
-    site_azimuth, is_satellite = retrieve_data(
-        local_file, site_names, sat, dataproduct_az
-    )
-    site_elevation, _ = retrieve_data(
-        local_file, site_names, sat, dataproduct_el
-    )
-    return site_azimuth, site_elevation, is_satellite
 
 def get_satellites(local_file: str | Path) -> NDArray:
     satellites = []

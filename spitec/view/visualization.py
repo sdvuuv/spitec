@@ -101,8 +101,7 @@ def create_layout() -> html.Div:
 
 
 def _create_left_side() -> list[dbc.Row]:
-    site_map_points = create_site_map_with_points()
-    site_map = create_fig_for_map(site_map_points)
+    site_map = create_site_map()
     projection_radio = _create_projection_radio()
     checkbox_site = _create_checkbox_site()
     download_window = _create_download_window()
@@ -310,8 +309,8 @@ def _create_open_window() -> html.Div:
     return open_window
 
 
-def create_site_map_with_points() -> go.Scattergeo:
-    site_map_points = go.Scattergeo(
+def create_site_map() -> go.Figure:
+    site_map = go.Scattergeo(
         mode="markers+text",
         marker=dict(size=8, line=dict(color="gray", width=1)),
         hoverlabel=dict(bgcolor="white"),
@@ -319,26 +318,7 @@ def create_site_map_with_points() -> go.Scattergeo:
         hoverinfo="lat+lon",
     )
 
-    return site_map_points
-
-def create_site_map_with_trajectories() -> go.Scattergeo:
-    site_map_trajs = go.Scattergeo(
-        mode='lines',
-        line=dict(width=2),
-        hoverinfo='skip'
-    )
-    return site_map_trajs
-
-def create_site_map_with_end_trajectories() -> go.Scattergeo:
-    site_map_end_trajs = go.Scattergeo(
-        mode='markers',
-        marker=dict(size=5, symbol='diamond', color='blue'),  # Маркер ромб
-        hovertemplate='%{lat}, %{lon}<extra></extra>'
-    )
-    return site_map_end_trajs
-
-def create_fig_for_map(list_sites: list | go.Scattergeo) -> go.Figure:
-    figure = go.Figure(list_sites)
+    figure = go.Figure(site_map)
     figure.update_layout(
         title=language["graph-site-map"]["title"],
         title_font=dict(size=24, color="black"),
@@ -364,6 +344,7 @@ def create_fig_for_map(list_sites: list | go.Scattergeo) -> go.Figure:
     figure.update_geos(
         landcolor="white",
     )
+
     return figure
 
 
