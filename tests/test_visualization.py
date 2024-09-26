@@ -2,40 +2,17 @@ import pytest
 from spitec import *
 
 def test_create_site_map():
-    site_map = go.Scattergeo(
+    site_map_points = go.Scattergeo(
         mode="markers+text",
         marker=dict(size=8, line=dict(color="gray", width=1)),
         hoverlabel=dict(bgcolor="white"),
         textposition="top center",
         hoverinfo="lat+lon",
     )
-    fig = go.Figure(site_map)
-    fig.update_layout(
-        title=language["graph-site-map"]["title"],
-        title_font=dict(size=24, color="black"),
-        margin=dict(l=0, t=60, r=0, b=0),
-        geo=dict(
-            projection_type=ProjectionType.MERCATOR.value,
-            lonaxis=dict(
-                showgrid=True,
-                gridwidth=0.5,
-                gridcolor="LightGrey",
-                tick0=-180,
-                dtick=10,
-            ),
-            lataxis=dict(
-                showgrid=True,
-                gridwidth=0.5,
-                gridcolor="LightGrey",
-                tick0=-90,
-                dtick=5,
-            )
-        ),
-    )
-    fig.update_geos(
-        landcolor="white",
-    )
-    assert create_site_map() == fig
+    site_map = create_site_map_with_points()
+    
+    assert isinstance(site_map, go.Scattergeo)
+    assert site_map == site_map_points
 
 def test_create_site_data():
     fig = go.Figure()

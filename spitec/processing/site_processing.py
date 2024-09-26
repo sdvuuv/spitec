@@ -58,7 +58,6 @@ def сheck_file_size(filename: str) -> int:
         return Mb
 
 
-
 def get_sites_coords(
     local_file: str | Path,
 ) -> dict[Site, dict[Coordinate, float]]:

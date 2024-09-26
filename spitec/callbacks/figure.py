@@ -1,56 +1,80 @@
 from ..view import *
-from ..processing import *
+from spitec.processing.data_processing import *
+from spitec.processing.data_products import DataProducts
+from spitec.processing.trajectorie import Trajectorie
+from spitec.processing.site_processing import *
 from datetime import datetime, timezone
+from spitec.processing.trajectorie import Trajectorie
 
 
-def create_map_with_sites(
+def create_map_with_points(
     site_coords: dict[Site, dict[Coordinate, float]],
     projection_value: ProjectionType,
-    check_value: bool,
+    show_names_site: bool,
     region_site_names: dict[str, int],
     site_data_store: dict[str, int],
     relayout_data: dict[str, float],
     scale_map_store: float,
 ) -> go.Figure:
-    site_map = create_site_map()
+    site_map_points = create_site_map_with_points()
+    list_site_maps = [site_map_points] 
+    if site_data_store is not None:
+        site_map_trajs = create_site_map_with_trajectories()
+        site_map_end_trajs = create_site_map_with_end_trajectories()
+        list_site_maps.extend([site_map_trajs, site_map_end_trajs])
+    site_map = create_fig_for_map(list_site_maps)
 
+    # Смена проекции
     if projection_value != site_map.layout.geo.projection.type:
         site_map.update_layout(geo=dict(projection_type=projection_value))
+
     if site_coords is not None:
         site_array, lat_array, lon_array = get_namelatlon_arrays(site_coords)
 
-        if check_value:
-            site_map.data[0].text = [site.upper() for site in site_array]
-        else:
-            if site_data_store is not None:
-                sites_name_lower = list(site_data_store.keys())
-            else:
-                sites_name_lower = []
-            site_map.data[0].text = [
-                site.upper() if site in sites_name_lower else ""
-                for site in site_array
-            ]
-            site_map.data[0].customdata = [
-                site.upper() if site not in sites_name_lower else ""
-                for site in site_array
-            ]
-            site_map.data[0].hoverinfo = "text"
-            site_map.data[0].hovertemplate = (
-                "%{customdata} (%{lat}, %{lon})<extra></extra>"
-            )
+        # Показать\скрыть имена станций
+        configure_show_site_names(show_names_site, site_data_store, site_map, site_array)
+
         colors = np.array([PointColor.SILVER.value] * site_array.shape[0])
 
+        # Добавление данных
         site_map.data[0].lat = lat_array
         site_map.data[0].lon = lon_array
         site_map.data[0].marker.color = colors
 
+        # Смена цвета точек
         _change_points_on_map(region_site_names, site_data_store, site_map)
+    # Смена маштаба
     if relayout_data is not None:
         _change_scale_map(
             site_map, relayout_data, scale_map_store, projection_value
         )
     return site_map
 
+def configure_show_site_names(
+        show_names_site: bool,
+        site_data_store: dict[str, int],
+        site_map: go.Figure,
+        site_array: NDArray
+    ) -> None:
+    if show_names_site:
+        site_map.data[0].text = [site.upper() for site in site_array]
+    else:
+        if site_data_store is not None:
+            sites_name_lower = list(site_data_store.keys())
+        else:
+            sites_name_lower = []
+        site_map.data[0].text = [
+                site.upper() if site in sites_name_lower else ""
+                for site in site_array
+            ]
+        site_map.data[0].customdata = [
+                site.upper() if site not in sites_name_lower else ""
+                for site in site_array
+            ]
+        site_map.data[0].hoverinfo = "text"
+        site_map.data[0].hovertemplate = (
+                "%{customdata} (%{lat}, %{lon})<extra></extra>"
+            )
 
 def _change_scale_map(
     site_map: go.Figure,
@@ -94,7 +118,6 @@ def _change_scale_map(
             )
         )
 
-
 def _change_points_on_map(
     region_site_names: dict[str, int],
     site_data_store: dict[str, int],
@@ -110,6 +133,28 @@ def _change_points_on_map(
             colors[idx] = PointColor.RED.value
     site_map.data[0].marker.color = colors
 
+def create_map_with_trajectories(
+        site_map: go.Figure,
+        local_file: str,
+        site_data_store: dict[str, int],
+        lat_array: list[float], 
+        lon_array: list[float],
+        sat: Sat,
+) -> go.Figure:
+    list_trajectorie: list[Trajectorie] = []
+    for name, idx in site_data_store.items():
+        traj = Trajectorie(name, sat, lat_array[idx], lon_array[idx])
+        list_trajectorie.append(traj)
+
+    site_names = list(site_data_store.keys())
+    site_azimuth, site_elevation, is_satellite = get_el_az(local_file, site_names, sat)
+    
+    for traj in list_trajectorie:
+        traj.add_trajectory_points(
+            site_azimuth[traj.site_name][traj.sat_name],
+            site_elevation[traj.site_name][traj.sat_name],
+        )
+    return site_map
 
 def create_site_data_with_values(
     site_data_store: dict[str, int],
