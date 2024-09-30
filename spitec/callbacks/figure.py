@@ -5,6 +5,7 @@ from spitec.processing.trajectorie import Trajectorie
 from spitec.processing.site_processing import *
 from datetime import datetime, timezone
 from spitec.processing.trajectorie import Trajectorie
+import plotly.express as px
 
 
 def create_map_with_points(
@@ -17,12 +18,7 @@ def create_map_with_points(
     scale_map_store: float,
 ) -> go.Figure:
     site_map_points = create_site_map_with_points()
-    list_site_maps = [site_map_points] 
-    if site_data_store is not None:
-        site_map_trajs = create_site_map_with_trajectories()
-        site_map_end_trajs = create_site_map_with_end_trajectories()
-        list_site_maps.extend([site_map_trajs, site_map_end_trajs])
-    site_map = create_fig_for_map(list_site_maps)
+    site_map = create_fig_for_map(site_map_points)
 
     # Смена проекции
     if projection_value != site_map.layout.geo.projection.type:
@@ -133,27 +129,70 @@ def _change_points_on_map(
             colors[idx] = PointColor.RED.value
     site_map.data[0].marker.color = colors
 
-def create_map_with_trajectories(
-        site_map: go.Figure,
+def get_objs_trajectories(
         local_file: str,
-        site_data_store: dict[str, int],
-        lat_array: list[float], 
-        lon_array: list[float],
+        site_data_store: dict[str, int], # все выбранные точки
+        site_coords: dict[Site, dict[Coordinate, float]],
         sat: Sat,
-) -> go.Figure:
+    ) -> list[dict]:
     list_trajectorie: list[Trajectorie] = []
+    if len(site_data_store) == 0 or site_coords is None:
+        return list_trajectorie
+
+    _, lat_array, lon_array = get_namelatlon_arrays(site_coords)
+    
+    # Заполняем список с объектами Trajectorie
     for name, idx in site_data_store.items():
         traj = Trajectorie(name, sat, lat_array[idx], lon_array[idx])
         list_trajectorie.append(traj)
+    
 
+    # Извлекаем значения el и az по станциям
     site_names = list(site_data_store.keys())
     site_azimuth, site_elevation, is_satellite = get_el_az(local_file, site_names, sat)
     
+    # Добавлем долгату и широту для точек траекторий
     for traj in list_trajectorie:
+        if not is_satellite[traj.site_name]:
+            traj.sat_exist = False
+            continue
         traj.add_trajectory_points(
-            site_azimuth[traj.site_name][traj.sat_name],
-            site_elevation[traj.site_name][traj.sat_name],
+            site_azimuth[traj.site_name][traj.sat_name][DataProducts.azimuth],
+            site_elevation[traj.site_name][traj.sat_name][DataProducts.elevation],
         )
+    return list_trajectorie
+
+def create_map_with_trajectories(
+        site_map: go.Figure,
+        local_file: str,
+        site_data_store: dict[str, int], # все выбранные точки
+        site_coords: dict[Site, dict[Coordinate, float]],
+        sat: Sat,
+        data_colors: dict[Site, str]
+) -> go.Figure:
+    if sat is None:
+        return site_map
+    
+    trajectory_objs: list[Trajectorie] = get_objs_trajectories(local_file, site_data_store, site_coords, sat)
+
+    for traj in trajectory_objs:
+        if not traj.sat_exist: # данных по спутнику нет
+            continue
+        
+        site_map_trajs = create_site_map_with_trajectories()
+        site_map_end_trajs = create_site_map_with_end_trajectories()
+
+        # Устанавливаем точки траектории
+        site_map_trajs.lat = traj.traj_lat[traj.idx_start_point:traj.idx_end_point:3]
+        site_map_trajs.lon = traj.traj_lon[traj.idx_start_point:traj.idx_end_point:3]
+        site_map_trajs.marker.color = data_colors[traj.site_name]
+
+        # Устанавливаем координаты последней точки
+        site_map_end_trajs.lat = [traj.traj_lat[traj.idx_end_point]]
+        site_map_end_trajs.lon = [traj.traj_lon[traj.idx_end_point]]
+        site_map_end_trajs.marker.color = data_colors[traj.site_name]
+
+        site_map.add_traces([site_map_trajs, site_map_end_trajs])
     return site_map
 
 def create_site_data_with_values(
@@ -203,6 +242,7 @@ def _add_lines(
     local_file: str,
     shift: float,
 ) -> None:
+    colors = px.colors.qualitative.Plotly
     site_data_tmp, is_satellite = retrieve_data(
         local_file, sites_name, sat, dataproduct
     )
@@ -240,6 +280,7 @@ def _add_lines(
                 vals = site_data_tmp[name][sat][dataproduct]
             times = site_data_tmp[name][sat][DataProducts.time]
 
+            idx_color = i if i < len(colors) else i - len(colors)*(i // len(colors))
             scatters.append(
                 go.Scatter(
                     x=times,
@@ -251,6 +292,7 @@ def _add_lines(
                     hovertemplate="%{x}, %{customdata}<extra></extra>",
                     marker=dict(
                         size=3,
+                        color = colors[idx_color],
                     ),
                 )
             )

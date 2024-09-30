@@ -337,8 +337,8 @@ def create_site_map_with_end_trajectories() -> go.Scattergeo:
     )
     return site_map_end_trajs
 
-def create_fig_for_map(list_sites: list | go.Scattergeo) -> go.Figure:
-    figure = go.Figure(list_sites)
+def create_fig_for_map(sites: go.Scattergeo) -> go.Figure:
+    figure = go.Figure(sites)
     figure.update_layout(
         title=language["graph-site-map"]["title"],
         title_font=dict(size=24, color="black"),
@@ -360,6 +360,7 @@ def create_fig_for_map(list_sites: list | go.Scattergeo) -> go.Figure:
                 dtick=5,
             )
         ),
+        showlegend=False
     )
     figure.update_geos(
         landcolor="white",

@@ -2,11 +2,10 @@ from dash.dependencies import Input, Output, State
 import plotly.graph_objects as go
 from ..view import *
 from ..processing import *
-from .figure import create_map_with_points, create_site_data_with_values
+from .figure import *
 import dash
 from pathlib import Path
 from numpy.typing import NDArray
-import time
 
 
 language = languages["en"]
@@ -26,6 +25,9 @@ def register_callbacks(app: dash.Dash) -> None:
             State("region-site-names-store", "data"),
             State("site-coords-store", "data"),
             State("site-data-store", "data"),
+            State("local-file-store", "data"),
+            State("selection-satellites", "value"),
+            State("graph-site-data", "figure")
         ],
         prevent_initial_call=True,
     )
@@ -35,6 +37,9 @@ def register_callbacks(app: dash.Dash) -> None:
         region_site_names: dict[str, int],
         site_coords: dict[Site, dict[Coordinate, float]],
         site_data_store: dict[str, int],
+        local_file: str,
+        sat: Sat,
+        site_data: dict
     ) -> go.Figure:
         site_map = create_map_with_points(
             site_coords,
@@ -45,6 +50,20 @@ def register_callbacks(app: dash.Dash) -> None:
             None,
             None,
         )
+        
+        colors = {}
+        for data in site_data["data"]:
+            colors[data["name"].lower()] = data["marker"]["color"]
+        
+        site_map = create_map_with_trajectories(
+            site_map,
+            local_file,
+            site_data_store,
+            site_coords,
+            sat, 
+            colors
+        )
+
         scale_map = 1
         return site_map, scale_map, None
 
@@ -97,6 +116,7 @@ def register_callbacks(app: dash.Dash) -> None:
                 del site_data_store[site_name]
             else:
                 site_data_store[site_name] = pointIndex
+
         site_map = create_map_with_points(
             site_coords,
             projection_value,
@@ -108,6 +128,19 @@ def register_callbacks(app: dash.Dash) -> None:
         )
         site_data = create_site_data_with_values(
             site_data_store, sat, data_types, local_file, time_value, shift
+        )
+
+        colors = {}
+        for data in site_data.data:
+            colors[data.name.lower()] = data.marker.color
+        
+        site_map = create_map_with_trajectories(
+            site_map,
+            local_file,
+            site_data_store,
+            site_coords,
+            sat, 
+            colors
         )
 
         disabled = True if len(site_data.data) == 0 else False
