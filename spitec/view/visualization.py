@@ -107,6 +107,8 @@ def _create_left_side() -> list[dbc.Row]:
     checkbox_site = _create_checkbox_site()
     download_window = _create_download_window()
     open_window = _create_open_window()
+    input_hm = _create_input_hm()
+    input_time = _create_input_time()
     left_side = [
         dbc.Row(
             [
@@ -144,6 +146,26 @@ def _create_left_side() -> list[dbc.Row]:
                 "text-align": "center",
                 "fontSize": "18px",
             },
+        ),
+        dbc.Row(
+            dbc.Col(
+                [
+                    dbc.Label(language["trajectory"]["hm"]+":", width=1),
+                    html.Div(
+                        input_hm,
+                    ),
+                    dbc.Label(language["trajectory"]["hms"]+":", width=1,
+                              style={"margin-left": "20px"}),
+                    html.Div(
+                        input_time,
+                    ),
+                ],
+                style={"display": "flex", "justify-content": "center"},
+            ),
+            style={
+                "margin-top": "25px",
+                "fontSize": "18px",
+            },      
         ),
     ]
     return left_side
@@ -366,6 +388,30 @@ def create_fig_for_map(sites: go.Scattergeo) -> go.Figure:
         landcolor="white",
     )
     return figure
+
+def _create_input_hm() -> dbc.Input:
+    input = dbc.Input(
+        id="input-hm",
+        type="number",
+        step="0.1",
+        value=300,
+        persistence=300,
+        persistence_type="session",
+        style={"width": "85px"},
+    )
+    return input
+
+def _create_input_time() -> dbc.Input:
+    input = dbc.Input(
+        id="input-time",
+        type="time",
+        step=1,
+        value="00:00:00",
+        persistence="00:00:00",
+        persistence_type="session",
+        style={"width": "130px"},
+    )
+    return input
 
 
 def _create_projection_radio() -> dbc.RadioItems:

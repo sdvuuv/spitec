@@ -27,7 +27,9 @@ def register_callbacks(app: dash.Dash) -> None:
             State("site-data-store", "data"),
             State("local-file-store", "data"),
             State("selection-satellites", "value"),
-            State("graph-site-data", "figure")
+            State("graph-site-data", "figure"),
+            State("time-slider", "value"),
+            State("input-hm", "value"),
         ],
         prevent_initial_call=True,
     )
@@ -39,7 +41,9 @@ def register_callbacks(app: dash.Dash) -> None:
         site_data_store: dict[str, int],
         local_file: str,
         sat: Sat,
-        site_data: dict
+        site_data: dict,
+        time_value: list[int],
+        input_hm: float,
     ) -> go.Figure:
         site_map = create_map_with_points(
             site_coords,
@@ -61,7 +65,9 @@ def register_callbacks(app: dash.Dash) -> None:
             site_data_store,
             site_coords,
             sat, 
-            colors
+            colors,
+            time_value,
+            input_hm,
         )
 
         scale_map = 1
@@ -89,6 +95,7 @@ def register_callbacks(app: dash.Dash) -> None:
             State("input-shift", "value"),
             State("relayout-map-store", "data"),
             State("scale-map-store", "data"),
+            State("input-hm", "value"),
         ],
         prevent_initial_call=True,
     )
@@ -106,6 +113,7 @@ def register_callbacks(app: dash.Dash) -> None:
         shift: float,
         relayout_data: dict[str, float],
         scale_map_store: float,
+        input_hm: float,
     ) -> list[go.Figure | None | bool | dict[str, int]]:
         if clickData is not None:
             pointIndex = clickData["points"][0]["pointIndex"]
@@ -140,7 +148,9 @@ def register_callbacks(app: dash.Dash) -> None:
             site_data_store,
             site_coords,
             sat, 
-            colors
+            colors,
+            time_value,
+            input_hm
         )
 
         disabled = True if len(site_data.data) == 0 else False
@@ -150,6 +160,7 @@ def register_callbacks(app: dash.Dash) -> None:
         [
             Output("graph-site-data", "figure", allow_duplicate=True),
             Output("time-slider", "disabled", allow_duplicate=True),
+            Output("graph-site-map", "figure", allow_duplicate=True),
         ],
         [Input("time-slider", "value")],
         [
@@ -158,6 +169,13 @@ def register_callbacks(app: dash.Dash) -> None:
             State("local-file-store", "data"),
             State("selection-satellites", "value"),
             State("input-shift", "value"),
+            State("projection-radio", "value"),
+            State("hide-show-site", "value"),
+            State("site-coords-store", "data"),
+            State("relayout-map-store", "data"),
+            State("scale-map-store", "data"),
+            State("input-hm", "value"),
+            State("region-site-names-store", "data"),
         ],
         prevent_initial_call=True,
     )
@@ -168,12 +186,44 @@ def register_callbacks(app: dash.Dash) -> None:
         local_file: str,
         sat: Sat,
         shift: float,
+        projection_value: ProjectionType,
+        show_names_site: bool,
+        site_coords: dict[Site, dict[Coordinate, float]],
+        relayout_data: dict[str, float],
+        scale_map_store: float,
+        input_hm: float,
+        region_site_names: dict[str, int],
     ) -> list[go.Figure | bool]:
         site_data = create_site_data_with_values(
             site_data_store, sat, data_types, local_file, time_value, shift
         )
         disabled = True if len(site_data.data) == 0 else False
-        return site_data, disabled
+
+        colors = {}
+        for data in site_data["data"]:
+            colors[data["name"].lower()] = data["marker"]["color"]
+
+        site_map = create_map_with_points(
+            site_coords,
+            projection_value,
+            show_names_site,
+            region_site_names,
+            site_data_store,
+            relayout_data,
+            scale_map_store,
+        )
+        site_map = create_map_with_trajectories(
+            site_map,
+            local_file,
+            site_data_store,
+            site_coords,
+            sat, 
+            colors,
+            time_value,
+            input_hm
+        )
+
+        return site_data, disabled, site_map
 
     @app.callback(
         [
@@ -210,7 +260,7 @@ def register_callbacks(app: dash.Dash) -> None:
             projection_value,
             show_names_site,
             region_site_names,
-            None,
+            region_site_names,
             relayout_data,
             scale_map_store,
         )
@@ -249,6 +299,11 @@ def register_callbacks(app: dash.Dash) -> None:
             State("site-data-store", "data"),
             State("relayout-map-store", "data"),
             State("scale-map-store", "data"),
+            State("graph-site-data", "figure"),
+            State("local-file-store", "data"),
+            State("selection-satellites", "value"),
+            State("time-slider", "value"),
+            State("input-hm", "value"),
         ],
         prevent_initial_call=True,
     )
@@ -260,6 +315,11 @@ def register_callbacks(app: dash.Dash) -> None:
         site_data_store: dict[str, int],
         relayout_data: dict[str, float],
         scale_map_store: float,
+        site_data: dict,
+        local_file: str,
+        sat: Sat,
+        time_value: list[int],
+        input_hm: float,
     ) -> go.Figure:
         site_map = create_map_with_points(
             site_coords,
@@ -269,6 +329,21 @@ def register_callbacks(app: dash.Dash) -> None:
             site_data_store,
             relayout_data,
             scale_map_store,
+        )
+
+        colors = {}
+        for data in site_data["data"]:
+            colors[data["name"].lower()] = data["marker"]["color"]
+        
+        site_map = create_map_with_trajectories(
+            site_map,
+            local_file,
+            site_data_store,
+            site_coords,
+            sat, 
+            colors,
+            time_value,
+            input_hm
         )
         return site_map
 
@@ -294,6 +369,11 @@ def register_callbacks(app: dash.Dash) -> None:
             State("site-data-store", "data"),
             State("relayout-map-store", "data"),
             State("scale-map-store", "data"),
+            State("graph-site-data", "figure"),
+            State("local-file-store", "data"),
+            State("selection-satellites", "value"),
+            State("time-slider", "value"),
+            State("input-hm", "value"),
         ],
         prevent_initial_call=True,
     )
@@ -310,6 +390,11 @@ def register_callbacks(app: dash.Dash) -> None:
         site_data_store: dict[str, int],
         relayout_data: dict[str, float],
         scale_map_store: float,
+        site_data: dict,
+        local_file: str,
+        sat: Sat,
+        time_value: list[int],
+        input_hm: float,
     ) -> list[go.Figure | bool | dict[str, int]]:
         return_value_list = [
             None,
@@ -327,16 +412,7 @@ def register_callbacks(app: dash.Dash) -> None:
         check_region_value(max_lon, 4, return_value_list)
 
         if True in return_value_list or site_coords is None:
-            return_value_list[0] = create_map_with_points(
-                site_coords,
-                projection_value,
-                show_names_site,
-                region_site_names,
-                site_data_store,
-                relayout_data,
-                scale_map_store,
-            )
-            return return_value_list
+            pass
         else:
             sites_by_region = select_sites_by_region(
                 site_coords, min_lat, max_lat, min_lon, max_lon
@@ -349,7 +425,7 @@ def register_callbacks(app: dash.Dash) -> None:
                 for site in tmp_sites:
                     sites[site] = keys.index(site)
                 return_value_list[-1] = sites
-        return_value_list[0] = create_map_with_points(
+        site_map = create_map_with_points(
             site_coords,
             projection_value,
             show_names_site,
@@ -357,6 +433,21 @@ def register_callbacks(app: dash.Dash) -> None:
             site_data_store,
             relayout_data,
             scale_map_store,
+        )
+
+        colors = {}
+        for data in site_data["data"]:
+            colors[data["name"].lower()] = data["marker"]["color"]
+        
+        return_value_list[0] = create_map_with_trajectories(
+            site_map,
+            local_file,
+            site_data_store,
+            site_coords,
+            sat, 
+            colors,
+            time_value,
+            input_hm
         )
         return return_value_list
 
@@ -388,6 +479,11 @@ def register_callbacks(app: dash.Dash) -> None:
             State("site-data-store", "data"),
             State("relayout-map-store", "data"),
             State("scale-map-store", "data"),
+            State("graph-site-data", "figure"),
+            State("local-file-store", "data"),
+            State("selection-satellites", "value"),
+            State("time-slider", "value"),
+            State("input-hm", "value"),
         ],
         prevent_initial_call=True,
     )
@@ -403,6 +499,11 @@ def register_callbacks(app: dash.Dash) -> None:
         site_data_store: dict[str, int],
         relayout_data: dict[str, float],
         scale_map_store: float,
+        site_data: dict,
+        local_file: str,
+        sat: Sat,
+        time_value: list[int],
+        input_hm: float,
     ) -> list[go.Figure | bool | dict[str, int]]:
         return_value_list = [None, False, False, False, region_site_names]
         sites = region_site_names
@@ -412,16 +513,7 @@ def register_callbacks(app: dash.Dash) -> None:
         check_region_value(lon, 3, return_value_list)
 
         if True in return_value_list or site_coords is None:
-            return_value_list[0] = create_map_with_points(
-                site_coords,
-                projection_value,
-                show_names_site,
-                region_site_names,
-                site_data_store,
-                relayout_data,
-                scale_map_store,
-            )
-            return return_value_list
+            pass
         else:
             central_point = dict()
             central_point[Coordinate.lat.value] = lat
@@ -437,7 +529,8 @@ def register_callbacks(app: dash.Dash) -> None:
                 for site in tmp_sites:
                     sites[site] = keys.index(site)
                 return_value_list[-1] = sites
-        return_value_list[0] = create_map_with_points(
+
+        site_map = create_map_with_points(
             site_coords,
             projection_value,
             show_names_site,
@@ -445,6 +538,21 @@ def register_callbacks(app: dash.Dash) -> None:
             site_data_store,
             relayout_data,
             scale_map_store,
+        )
+
+        colors = {}
+        for data in site_data["data"]:
+            colors[data["name"].lower()] = data["marker"]["color"]
+
+        return_value_list[0] = create_map_with_trajectories(
+            site_map,
+            local_file,
+            site_data_store,
+            site_coords,
+            sat, 
+            colors,
+            time_value,
+            input_hm
         )
         return return_value_list
 
@@ -464,6 +572,11 @@ def register_callbacks(app: dash.Dash) -> None:
             State("site-data-store", "data"),
             State("relayout-map-store", "data"),
             State("scale-map-store", "data"),
+            State("graph-site-data", "figure"),
+            State("local-file-store", "data"),
+            State("selection-satellites", "value"),
+            State("time-slider", "value"),
+            State("input-hm", "value"),
         ],
         prevent_initial_call=True,
     )
@@ -476,6 +589,11 @@ def register_callbacks(app: dash.Dash) -> None:
         site_data_store: dict[str, int],
         relayout_data: dict[str, float],
         scale_map_store: float,
+        site_data: dict,
+        local_file: str,
+        sat: Sat,
+        time_value: list[int],
+        input_hm: float,
     ) -> list[go.Figure | None]:
         site_map = create_map_with_points(
             site_coords,
@@ -485,6 +603,21 @@ def register_callbacks(app: dash.Dash) -> None:
             site_data_store,
             relayout_data,
             scale_map_store,
+        )
+
+        colors = {}
+        for data in site_data["data"]:
+            colors[data["name"].lower()] = data["marker"]["color"]
+
+        site_map = create_map_with_trajectories(
+            site_map,
+            local_file,
+            site_data_store,
+            site_coords,
+            sat, 
+            colors,
+            time_value,
+            input_hm
         )
         return site_map, None
 
@@ -726,9 +859,68 @@ def register_callbacks(app: dash.Dash) -> None:
             else:
                 val_shift = -1
         return val_shift
+    
+    @app.callback(
+        Output("graph-site-map", "figure", allow_duplicate=True),
+        [Input("input-hm", "value")],
+        [
+            State("selection-satellites", "value"),
+            State("local-file-store", "data"),
+            State("site-data-store", "data"),
+            State("time-slider", "value"),
+            State("projection-radio", "value"),
+            State("hide-show-site", "value"),
+            State("site-coords-store", "data"),
+            State("relayout-map-store", "data"),
+            State("scale-map-store", "data"),
+            State("graph-site-data", "figure"),
+            State("region-site-names-store", "data"),
+        ],
+        prevent_initial_call=True,
+    )
+    def change_hm(
+        input_hm: float,
+        sat: Sat,
+        local_file: str,
+        site_data_store: dict[str, int],
+        time_value: list[int],
+        projection_value: ProjectionType,
+        show_names_site: bool,
+        site_coords: dict[Site, dict[Coordinate, float]],
+        relayout_data: dict[str, float],
+        scale_map_store: float,
+        
+        site_data: dict,
+        region_site_names: dict[str, int],
+    ) -> go.Figure:
+        colors = {}
+        for data in site_data["data"]:
+            colors[data["name"].lower()] = data["marker"]["color"]
+
+        site_map = create_map_with_points(
+            site_coords,
+            projection_value,
+            show_names_site,
+            region_site_names,
+            site_data_store,
+            relayout_data,
+            scale_map_store,
+        )
+        site_map = create_map_with_trajectories(
+            site_map,
+            local_file,
+            site_data_store,
+            site_coords,
+            sat, 
+            colors,
+            time_value,
+            input_hm
+        )
+        return site_map
 
     @app.callback(
-        Output("graph-site-data", "figure", allow_duplicate=True),
+        [Output("graph-site-data", "figure", allow_duplicate=True),
+         Output("graph-site-map", "figure", allow_duplicate=True),],
         [Input("selection-satellites", "value")],
         [
             State("selection-data-types", "value"),
@@ -736,6 +928,13 @@ def register_callbacks(app: dash.Dash) -> None:
             State("site-data-store", "data"),
             State("time-slider", "value"),
             State("input-shift", "value"),
+            State("projection-radio", "value"),
+            State("hide-show-site", "value"),
+            State("site-coords-store", "data"),
+            State("relayout-map-store", "data"),
+            State("scale-map-store", "data"),
+            State("input-hm", "value"),
+            State("region-site-names-store", "data"),
         ],
         prevent_initial_call=True,
     )
@@ -746,11 +945,41 @@ def register_callbacks(app: dash.Dash) -> None:
         site_data_store: dict[str, int],
         time_value: list[int],
         shift: float,
+        projection_value: ProjectionType,
+        show_names_site: bool,
+        site_coords: dict[Site, dict[Coordinate, float]],
+        relayout_data: dict[str, float],
+        scale_map_store: float,
+        input_hm: float,
+        region_site_names: dict[str, int],
     ) -> go.Figure:
         site_data = create_site_data_with_values(
             site_data_store, sat, data_types, local_file, time_value, shift
         )
-        return site_data
+        colors = {}
+        for data in site_data["data"]:
+            colors[data["name"].lower()] = data["marker"]["color"]
+
+        site_map = create_map_with_points(
+            site_coords,
+            projection_value,
+            show_names_site,
+            region_site_names,
+            site_data_store,
+            relayout_data,
+            scale_map_store,
+        )
+        site_map = create_map_with_trajectories(
+            site_map,
+            local_file,
+            site_data_store,
+            site_coords,
+            sat, 
+            colors,
+            time_value,
+            input_hm
+        )
+        return site_data, site_map
 
     @app.callback(
         Output("graph-site-data", "figure", allow_duplicate=True),
@@ -799,6 +1028,7 @@ def register_callbacks(app: dash.Dash) -> None:
             State("satellites-options-store", "data"),
             State("selection-satellites", "value"),
             State("input-shift", "value"),
+            State("input-hm", "value"),
         ],
     )
     def update_all(
@@ -814,6 +1044,7 @@ def register_callbacks(app: dash.Dash) -> None:
         satellites_options: list[dict[str, str]],
         sat: Sat,
         shift: float,
+        input_hm: float,
     ) -> list[go.Figure, bool, list[dict[str, str]]]:
         site_map = create_map_with_points(
             site_coords,
@@ -827,6 +1058,22 @@ def register_callbacks(app: dash.Dash) -> None:
         site_data = create_site_data_with_values(
             site_data_store, sat, data_types, local_file, time_value, shift
         )
+
+        colors = {}
+        for data in site_data["data"]:
+            colors[data["name"].lower()] = data["marker"]["color"]
+
+        site_map = create_map_with_trajectories(
+            site_map,
+            local_file,
+            site_data_store,
+            site_coords,
+            sat, 
+            colors,
+            time_value,
+            input_hm
+        )
+            
         disabled = True if len(site_data.data) == 0 else False
         if satellites_options is None:
             satellites_options = []

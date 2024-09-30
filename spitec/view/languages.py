@@ -55,6 +55,10 @@ languages = {
             "header": "Загрузка...",
             "cancel-download": "Отменить",
         },
+        "trajectory":{
+            "hm": "Мв",
+            "hms": "Время",
+        }
     },
     "en": {
         "buttons": {
@@ -112,5 +116,9 @@ languages = {
             "header": "Loading...",
             "cancel-download": "Сancel",
         },
+        "trajectory":{
+            "hm": "hm",
+            "hms": "Time",
+        }
     },
 }

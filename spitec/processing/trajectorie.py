@@ -18,12 +18,14 @@ class Trajectorie:
         self.lon_site = lon_site
         self.traj_lat = []
         self.traj_lon = []
+        self.times = []
         self.idx_start_point = 0
         self.idx_end_point = 0
         self.sat_exist = True
 
-    def add_trajectory_points(self, azs, els, hm = 300) -> None:
+    def add_trajectory_points(self, azs, els, times, hm = 300) -> None:
         self.sat_exist = True
+        self.times = times
         for az, el in zip(azs, els):
             # получаем значения широты и долготы по az, el
             lat, lon = sub_ionospheric( 
