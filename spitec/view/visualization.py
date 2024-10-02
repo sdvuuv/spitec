@@ -142,10 +142,19 @@ def _create_left_side() -> list[dbc.Row]:
         dbc.Row(
             html.Div(projection_radio),
             style={
-                "margin-top": "25px",
+                "margin-top": "23px",
                 "text-align": "center",
                 "fontSize": "18px",
             },
+        ),
+        dbc.Row(
+            html.Div(
+                language["trajectory"]["error"],
+                id="trajectory-error",
+                style={
+                    "visibility": "hidden"
+                },
+            ),
         ),
         dbc.Row(
             dbc.Col(
@@ -163,7 +172,7 @@ def _create_left_side() -> list[dbc.Row]:
                 style={"display": "flex", "justify-content": "center"},
             ),
             style={
-                "margin-top": "25px",
+                "margin-top": "10px",
                 "fontSize": "18px",
             },      
         ),
@@ -354,7 +363,7 @@ def create_site_map_with_trajectories() -> go.Scattergeo:
 def create_site_map_with_end_trajectories() -> go.Scattergeo:
     site_map_end_trajs = go.Scattergeo(
         mode='markers',
-        marker=dict(size=5, symbol='diamond', color='blue'),  # Маркер ромб
+        marker=dict(size=5, symbol='diamond'),  # Маркер ромб
         hovertemplate='%{lat}, %{lon}<extra></extra>'
     )
     return site_map_end_trajs

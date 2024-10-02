@@ -18,6 +18,7 @@ def register_callbacks(app: dash.Dash) -> None:
             Output("graph-site-map", "figure", allow_duplicate=True),
             Output("scale-map-store", "data", allow_duplicate=True),
             Output("relayout-map-store", "data", allow_duplicate=True),
+            Output("trajectory-error", "style", allow_duplicate=True),
         ],
         [Input("projection-radio", "value")],
         [
@@ -44,7 +45,8 @@ def register_callbacks(app: dash.Dash) -> None:
         site_data: dict,
         time_value: list[int],
         input_hm: float,
-    ) -> go.Figure:
+    ) -> list[go.Figure, int, None, dict[str, str]]:
+        style_traj_error = {"visibility": "hidden"}
         site_map = create_map_with_points(
             site_coords,
             projection_value,
@@ -70,8 +72,17 @@ def register_callbacks(app: dash.Dash) -> None:
             input_hm,
         )
 
+        if site_map.layout.geo.projection.type != ProjectionType.ORTHOGRAPHIC.value and \
+        len(site_data["data"]) != 0:
+            style_traj_error = {
+                "margin-top": "5px",
+                "text-align": "center",
+                "fontSize": "16px",
+                "color": "red",
+            }
+
         scale_map = 1
-        return site_map, scale_map, None
+        return site_map, scale_map, None, style_traj_error
 
     @app.callback(
         [
@@ -80,6 +91,7 @@ def register_callbacks(app: dash.Dash) -> None:
             Output("graph-site-data", "figure", allow_duplicate=True),
             Output("time-slider", "disabled", allow_duplicate=True),
             Output("site-data-store", "data", allow_duplicate=True),
+            Output("trajectory-error", "style", allow_duplicate=True),
         ],
         [Input("graph-site-map", "clickData")],
         [
@@ -114,7 +126,8 @@ def register_callbacks(app: dash.Dash) -> None:
         relayout_data: dict[str, float],
         scale_map_store: float,
         input_hm: float,
-    ) -> list[go.Figure | None | bool | dict[str, int]]:
+    ) -> list[go.Figure, None, bool, dict[str, int], dict[str, str]]:
+        style_traj_error = {"visibility": "hidden"}
         if clickData is not None:
             pointIndex = clickData["points"][0]["pointIndex"]
             site_name = list(site_coords.keys())[pointIndex]
@@ -152,9 +165,17 @@ def register_callbacks(app: dash.Dash) -> None:
             time_value,
             input_hm
         )
+        if site_map.layout.geo.projection.type != ProjectionType.ORTHOGRAPHIC.value and \
+        len(site_data.data) != 0:
+            style_traj_error = {
+                "margin-top": "5px",
+                "text-align": "center",
+                "fontSize": "16px",
+                "color": "red",
+            }
 
         disabled = True if len(site_data.data) == 0 else False
-        return site_map, None, site_data, disabled, site_data_store
+        return site_map, None, site_data, disabled, site_data_store, style_traj_error
 
     @app.callback(
         [
@@ -231,6 +252,7 @@ def register_callbacks(app: dash.Dash) -> None:
             Output("graph-site-data", "figure", allow_duplicate=True),
             Output("time-slider", "disabled", allow_duplicate=True),
             Output("site-data-store", "data", allow_duplicate=True),
+            Output("trajectory-error", "style", allow_duplicate=True),
         ],
         [Input("clear-all", "n_clicks")],
         [
@@ -251,7 +273,7 @@ def register_callbacks(app: dash.Dash) -> None:
         site_coords: dict[Site, dict[Coordinate, float]],
         relayout_data: dict[str, float],
         scale_map_store: float,
-    ) -> list[go.Figure | bool | None]:
+    ) -> list[go.Figure | bool | None, dict[str, str]]:
         site_data = create_site_data_with_values(
             None, None, None, None, None, None
         )
@@ -265,7 +287,8 @@ def register_callbacks(app: dash.Dash) -> None:
             scale_map_store,
         )
         disabled = True
-        return site_map, site_data, disabled, None
+        style_traj_error = {"visibility": "hidden"}
+        return site_map, site_data, disabled, None, style_traj_error
 
     @app.callback(
         [
@@ -1014,6 +1037,7 @@ def register_callbacks(app: dash.Dash) -> None:
             Output("selection-satellites", "options"),
             Output("scale-map-store", "data"),
             Output("relayout-map-store", "data"),
+            Output("trajectory-error", "style"),
         ],
         [Input("url", "pathname")],
         [
@@ -1045,7 +1069,8 @@ def register_callbacks(app: dash.Dash) -> None:
         sat: Sat,
         shift: float,
         input_hm: float,
-    ) -> list[go.Figure, bool, list[dict[str, str]]]:
+    ) -> list[go.Figure, bool, list[dict[str, str]], dict[str, str]]:
+        style_traj_error = {"visibility": "hidden"}
         site_map = create_map_with_points(
             site_coords,
             projection_value,
@@ -1078,6 +1103,16 @@ def register_callbacks(app: dash.Dash) -> None:
         if satellites_options is None:
             satellites_options = []
         scale_map = 1
+
+        if site_map.layout.geo.projection.type != ProjectionType.ORTHOGRAPHIC.value and \
+        len(site_data.data) != 0:
+            style_traj_error = {
+                "margin-top": "5px",
+                "text-align": "center",
+                "fontSize": "16px",
+                "color": "red",
+            }
+
         return (
             site_map,
             site_data,
@@ -1085,4 +1120,5 @@ def register_callbacks(app: dash.Dash) -> None:
             satellites_options,
             scale_map,
             None,
+            style_traj_error
         )

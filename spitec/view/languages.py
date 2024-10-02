@@ -58,6 +58,7 @@ languages = {
         "trajectory":{
             "hm": "Мв",
             "hms": "Время",
+            "error": "В этой проекции траектории отображаются некорректно. Переключитесь на Ортографическую.",
         }
     },
     "en": {
@@ -119,6 +120,7 @@ languages = {
         "trajectory":{
             "hm": "hm",
             "hms": "Time",
+            "error": "In this projection, trajectories are displayed incorrectly. Switch to Orthographic.",
         }
     },
 }

@@ -2,6 +2,8 @@ from spitec.processing.site_processing import Site
 from spitec.processing.data_processing import Sat
 from simurg_core.geospace.sub_ionospheric import sub_ionospheric
 import numpy as np
+from datetime import datetime, timedelta
+from numpy.typing import NDArray
 
 class Trajectorie:
     
@@ -38,10 +40,32 @@ class Trajectorie:
             self.traj_lat.append(lat)
             self.traj_lon.append(lon)
 
-        self.traj_lat = np.degrees(np.array(self.traj_lat))
-        self.traj_lon = np.degrees(np.array(self.traj_lon))
+        self.traj_lat = np.degrees(self.traj_lat)
+        self.traj_lon = np.degrees(self.traj_lon)
+        self.traj_lat = np.array(self.traj_lat, dtype=object)
+        self.traj_lon = np.array(self.traj_lon, dtype=object)
 
-        assert len(self.traj_lat) == len(self.traj_lon)
+        self.__adding_artificial_value()
+
+        assert len(self.traj_lat) == len(self.traj_lon) == len(self.times)
 
         self.idx_start_point = 0
         self.idx_end_point = len(self.traj_lon) - 1 if len(self.traj_lat) != 0 else 0
+ 
+    def __adding_artificial_value(self, minutes: int = 10) -> None:
+        # Добавлеем в lat и lon значение None там, где разрыв во времени больше 10 мин
+        interval = timedelta(minutes=minutes)
+        diffs = np.diff(self.times)
+        # Ищем индексы
+        indices_to_insert = np.where(diffs > interval)[0] + 1
+
+        # Вставляем среднее время между большими интервалами 
+        values_to_insert_time = [
+            self.times[i - 1] + (self.times[i] - self.times[i - 1]) / 2 for i in indices_to_insert
+        ]
+        values_to_insert_coords = np.full(len(indices_to_insert), None)
+
+        # Вставка новых значений в массив
+        self.times = np.insert(self.times, indices_to_insert, values_to_insert_time)
+        self.traj_lat = np.insert(self.traj_lat, indices_to_insert, values_to_insert_coords)
+        self.traj_lon = np.insert(self.traj_lon, indices_to_insert, values_to_insert_coords)
