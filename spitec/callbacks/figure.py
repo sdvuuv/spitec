@@ -225,9 +225,9 @@ def create_map_with_trajectories(
         traj.idx_start_point = __find_time(traj.times, limit_start)
         traj.idx_end_point = __find_time(traj.times, limit_end, False)
         if traj.traj_lat[traj.idx_start_point] is None:
-            traj.idx_start_point += 1
+            traj.idx_start_point += 3
         if traj.traj_lat[traj.idx_end_point] is None:
-            traj.idx_end_point -= 1
+            traj.idx_end_point -= 3
 
         if traj.idx_start_point >= traj.idx_end_point or \
             traj.idx_start_point == -1 or \
@@ -238,8 +238,8 @@ def create_map_with_trajectories(
         site_map_end_trajs = create_site_map_with_end_trajectories() # создаем объект для отрисовки конца траектории
 
         # Устанавливаем точки траектории
-        site_map_trajs.lat = traj.traj_lat[traj.idx_start_point:traj.idx_end_point]
-        site_map_trajs.lon = traj.traj_lon[traj.idx_start_point:traj.idx_end_point]
+        site_map_trajs.lat = traj.traj_lat[traj.idx_start_point:traj.idx_end_point:3]
+        site_map_trajs.lon = traj.traj_lon[traj.idx_start_point:traj.idx_end_point:3]
         site_map_trajs.marker.color = data_colors[traj.site_name]
 
         # Устанавливаем координаты последней точки

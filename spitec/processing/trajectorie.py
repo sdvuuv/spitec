@@ -60,12 +60,13 @@ class Trajectorie:
         indices_to_insert = np.where(diffs > interval)[0] + 1
 
         # Вставляем среднее время между большими интервалами 
-        values_to_insert_time = [
-            self.times[i - 1] + (self.times[i] - self.times[i - 1]) / 2 for i in indices_to_insert
-        ]
-        values_to_insert_coords = np.full(len(indices_to_insert), None)
+        values_to_insert_time = []
+        for i in indices_to_insert:
+            midpoint = self.times[i - 1] + (self.times[i] - self.times[i - 1]) / 2
+            values_to_insert_time.extend([midpoint, midpoint + timedelta(seconds=30), midpoint - timedelta(seconds=30)])
+        values_to_insert_coords = [None] * (3 * len(indices_to_insert))
 
         # Вставка новых значений в массив
-        self.times = np.insert(self.times, indices_to_insert, values_to_insert_time)
-        self.traj_lat = np.insert(self.traj_lat, indices_to_insert, values_to_insert_coords)
-        self.traj_lon = np.insert(self.traj_lon, indices_to_insert, values_to_insert_coords)
+        self.times = np.insert(self.times, indices_to_insert.repeat(3), values_to_insert_time)
+        self.traj_lat = np.insert(self.traj_lat, indices_to_insert.repeat(3), values_to_insert_coords)
+        self.traj_lon = np.insert(self.traj_lon, indices_to_insert.repeat(3), values_to_insert_coords) 
