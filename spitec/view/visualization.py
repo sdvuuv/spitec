@@ -162,12 +162,18 @@ def _create_left_side() -> list[dbc.Row]:
                     dbc.Label(language["trajectory"]["hm"]+":", width=1),
                     html.Div(
                         input_hm,
+                        style={"margin-right": "25px"}
                     ),
                     dbc.Label(language["trajectory"]["hms"]+":", width=1,
-                              style={"margin-left": "20px"}),
+                              style={"margin-left": "25px"}),
                     html.Div(
                         input_time,
                     ),
+                    dbc.Button(
+                            language["trajectory"]["show-label-sip"],
+                            id="show-label-sip",
+                            style={"margin-left": "20px"}
+                        ),
                 ],
                 style={"display": "flex", "justify-content": "center"},
             ),

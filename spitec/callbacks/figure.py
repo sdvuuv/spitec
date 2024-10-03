@@ -145,7 +145,7 @@ def get_objs_trajectories(
     
     # Заполняем список с объектами Trajectorie
     for name, idx in site_data_store.items():
-        traj = Trajectorie(name, sat, lat_array[idx], lon_array[idx])
+        traj = Trajectorie(name, sat, np.radians(lat_array[idx]), np.radians(lon_array[idx]))
         list_trajectorie.append(traj)
     
 
