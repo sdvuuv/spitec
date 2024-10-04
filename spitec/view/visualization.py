@@ -101,11 +101,14 @@ def create_layout() -> html.Div:
 
 
 def _create_left_side() -> list[dbc.Row]:
-    site_map = create_site_map()
+    site_map_points = create_site_map_with_points()
+    site_map = create_fig_for_map(site_map_points)
     projection_radio = _create_projection_radio()
     checkbox_site = _create_checkbox_site()
     download_window = _create_download_window()
     open_window = _create_open_window()
+    input_hm = _create_input_hm()
+    input_time = _create_input_time()
     left_side = [
         dbc.Row(
             [
@@ -139,10 +142,45 @@ def _create_left_side() -> list[dbc.Row]:
         dbc.Row(
             html.Div(projection_radio),
             style={
-                "margin-top": "25px",
+                "margin-top": "23px",
                 "text-align": "center",
                 "fontSize": "18px",
             },
+        ),
+        dbc.Row(
+            html.Div(
+                language["trajectory"]["error"],
+                id="trajectory-error",
+                style={
+                    "visibility": "hidden"
+                },
+            ),
+        ),
+        dbc.Row(
+            dbc.Col(
+                [
+                    dbc.Label(language["trajectory"]["hm"]+":", width=1),
+                    html.Div(
+                        input_hm,
+                        style={"margin-right": "25px"}
+                    ),
+                    dbc.Label(language["trajectory"]["hms"]+":", width=1,
+                              style={"margin-left": "25px"}),
+                    html.Div(
+                        input_time,
+                    ),
+                    dbc.Button(
+                            language["trajectory"]["show-label-sip"],
+                            id="show-label-sip",
+                            style={"margin-left": "20px"}
+                        ),
+                ],
+                style={"display": "flex", "justify-content": "center"},
+            ),
+            style={
+                "margin-top": "10px",
+                "fontSize": "18px",
+            },      
         ),
     ]
     return left_side
@@ -309,8 +347,8 @@ def _create_open_window() -> html.Div:
     return open_window
 
 
-def create_site_map() -> go.Figure:
-    site_map = go.Scattergeo(
+def create_site_map_with_points() -> go.Scattergeo:
+    site_map_points = go.Scattergeo(
         mode="markers+text",
         marker=dict(size=8, line=dict(color="gray", width=1)),
         hoverlabel=dict(bgcolor="white"),
@@ -318,7 +356,26 @@ def create_site_map() -> go.Figure:
         hoverinfo="lat+lon",
     )
 
-    figure = go.Figure(site_map)
+    return site_map_points
+
+def create_site_map_with_trajectories() -> go.Scattergeo:
+    site_map_trajs = go.Scattergeo(
+        mode='lines',
+        line=dict(width=2),
+        hoverinfo='skip'
+    )
+    return site_map_trajs
+
+def create_site_map_with_end_trajectories() -> go.Scattergeo:
+    site_map_end_trajs = go.Scattergeo(
+        mode='markers',
+        marker=dict(size=5, symbol='diamond'),  # Маркер ромб
+        hovertemplate='%{lat}, %{lon}<extra></extra>'
+    )
+    return site_map_end_trajs
+
+def create_fig_for_map(sites: go.Scattergeo) -> go.Figure:
+    figure = go.Figure(sites)
     figure.update_layout(
         title=language["graph-site-map"]["title"],
         title_font=dict(size=24, color="black"),
@@ -340,12 +397,36 @@ def create_site_map() -> go.Figure:
                 dtick=5,
             )
         ),
+        showlegend=False
     )
     figure.update_geos(
         landcolor="white",
     )
-
     return figure
+
+def _create_input_hm() -> dbc.Input:
+    input = dbc.Input(
+        id="input-hm",
+        type="number",
+        step="0.1",
+        value=300,
+        persistence=300,
+        persistence_type="session",
+        style={"width": "85px"},
+    )
+    return input
+
+def _create_input_time() -> dbc.Input:
+    input = dbc.Input(
+        id="input-time",
+        type="time",
+        step=1,
+        value="00:00:00",
+        persistence="00:00:00",
+        persistence_type="session",
+        style={"width": "130px"},
+    )
+    return input
 
 
 def _create_projection_radio() -> dbc.RadioItems:

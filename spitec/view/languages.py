@@ -55,6 +55,12 @@ languages = {
             "header": "Загрузка...",
             "cancel-download": "Отменить",
         },
+        "trajectory":{
+            "hm": "Мв",
+            "hms": "Время",
+            "error": "В этой проекции траектории отображаются некорректно. Переключитесь на Ортографическую.",
+            "show-label-sip": "Показать",
+        }
     },
     "en": {
         "buttons": {
@@ -112,5 +118,11 @@ languages = {
             "header": "Loading...",
             "cancel-download": "Сancel",
         },
+        "trajectory":{
+            "hm": "hm",
+            "hms": "Time",
+            "error": "In this projection, trajectories are displayed incorrectly. Switch to Orthographic.",
+            "show-label-sip": "Show",
+        }
     },
 }

@@ -1,56 +1,77 @@
 from ..view import *
-from ..processing import *
+from spitec.processing.data_processing import *
+from spitec.processing.data_products import DataProducts
+from spitec.processing.trajectorie import Trajectorie
+from spitec.processing.site_processing import *
 from datetime import datetime, timezone
+import numpy as np
+import plotly.express as px
 
 
-def create_map_with_sites(
+def create_map_with_points(
     site_coords: dict[Site, dict[Coordinate, float]],
     projection_value: ProjectionType,
-    check_value: bool,
+    show_names_site: bool,
     region_site_names: dict[str, int],
     site_data_store: dict[str, int],
     relayout_data: dict[str, float],
     scale_map_store: float,
 ) -> go.Figure:
-    site_map = create_site_map()
+    site_map_points = create_site_map_with_points()
+    site_map = create_fig_for_map(site_map_points)
 
+    # Смена проекции
     if projection_value != site_map.layout.geo.projection.type:
         site_map.update_layout(geo=dict(projection_type=projection_value))
+
     if site_coords is not None:
         site_array, lat_array, lon_array = get_namelatlon_arrays(site_coords)
 
-        if check_value:
-            site_map.data[0].text = [site.upper() for site in site_array]
-        else:
-            if site_data_store is not None:
-                sites_name_lower = list(site_data_store.keys())
-            else:
-                sites_name_lower = []
-            site_map.data[0].text = [
-                site.upper() if site in sites_name_lower else ""
-                for site in site_array
-            ]
-            site_map.data[0].customdata = [
-                site.upper() if site not in sites_name_lower else ""
-                for site in site_array
-            ]
-            site_map.data[0].hoverinfo = "text"
-            site_map.data[0].hovertemplate = (
-                "%{customdata} (%{lat}, %{lon})<extra></extra>"
-            )
+        # Показать\скрыть имена станций
+        configure_show_site_names(show_names_site, site_data_store, site_map, site_array)
+
         colors = np.array([PointColor.SILVER.value] * site_array.shape[0])
 
+        # Добавление данных
         site_map.data[0].lat = lat_array
         site_map.data[0].lon = lon_array
         site_map.data[0].marker.color = colors
 
+        # Смена цвета точек
         _change_points_on_map(region_site_names, site_data_store, site_map)
+    # Смена маштаба
     if relayout_data is not None:
         _change_scale_map(
             site_map, relayout_data, scale_map_store, projection_value
         )
     return site_map
 
+def configure_show_site_names(
+        show_names_site: bool,
+        site_data_store: dict[str, int],
+        site_map: go.Figure,
+        site_array: NDArray
+    ) -> None:
+    # Показать\скрыть имена станций
+    if show_names_site:
+        site_map.data[0].text = [site.upper() for site in site_array]
+    else:
+        if site_data_store is not None:
+            sites_name_lower = list(site_data_store.keys())
+        else:
+            sites_name_lower = []
+        site_map.data[0].text = [
+                site.upper() if site in sites_name_lower else ""
+                for site in site_array
+            ]
+        site_map.data[0].customdata = [
+                site.upper() if site not in sites_name_lower else ""
+                for site in site_array
+            ]
+        site_map.data[0].hoverinfo = "text"
+        site_map.data[0].hovertemplate = (
+                "%{customdata} (%{lat}, %{lon})<extra></extra>"
+            )
 
 def _change_scale_map(
     site_map: go.Figure,
@@ -58,6 +79,7 @@ def _change_scale_map(
     scale_map_store: float,
     projection_value: ProjectionType,
 ) -> None:
+    # Меняем маштаб
     if relayout_data.get("geo.projection.scale", None) is not None:
         scale = relayout_data.get("geo.projection.scale")
     else:
@@ -94,12 +116,12 @@ def _change_scale_map(
             )
         )
 
-
 def _change_points_on_map(
     region_site_names: dict[str, int],
     site_data_store: dict[str, int],
     site_map: go.Figure,
 ) -> None:
+    # Меняем цвета точек на карте
     colors = site_map.data[0].marker.color.copy()
 
     if region_site_names is not None:
@@ -110,6 +132,122 @@ def _change_points_on_map(
             colors[idx] = PointColor.RED.value
     site_map.data[0].marker.color = colors
 
+def get_objs_trajectories(
+        local_file: str,
+        site_data_store: dict[str, int], # все выбранные точки
+        site_coords: dict[Site, dict[Coordinate, float]],
+        sat: Sat,
+        hm: float,
+    ) -> list[Trajectorie]:
+    list_trajectorie: list[Trajectorie] = []
+    _, lat_array, lon_array = get_namelatlon_arrays(site_coords)
+    
+    # Заполняем список с объектами Trajectorie
+    for name, idx in site_data_store.items():
+        traj = Trajectorie(name, sat, np.radians(lat_array[idx]), np.radians(lon_array[idx]))
+        list_trajectorie.append(traj)
+    
+
+    # Извлекаем значения el и az по станциям
+    site_names = list(site_data_store.keys())
+    site_azimuth, site_elevation, is_satellite = get_el_az(local_file, site_names, sat)
+    
+    # Добавлем долгату и широту для точек траекторий
+    for traj in list_trajectorie:
+        if not is_satellite[traj.site_name]:
+            traj.sat_exist = False
+            continue
+        traj.add_trajectory_points(
+            site_azimuth[traj.site_name][traj.sat_name][DataProducts.azimuth],
+            site_elevation[traj.site_name][traj.sat_name][DataProducts.elevation],
+            site_azimuth[traj.site_name][traj.sat_name][DataProducts.time],
+            hm
+        )
+    return list_trajectorie
+
+def __find_time(times: NDArray, target_time: datetime, look_more = True):
+    exact_match_idx = np.where(times == target_time)[0]
+
+    if exact_match_idx.size > 0:
+        # Если точное совпадение найдено
+        return exact_match_idx[0]
+    else:
+        # Если точного совпадения нет, ищем ближайшее большее/меньшее время
+        nearest_other_idx = -1
+        if look_more:
+            other_times = np.where(times > target_time)[0]
+            if other_times.size > 0:
+                nearest_other_idx = other_times[0]
+        else:
+            other_times = np.where(times < target_time)[0]
+            if other_times.size > 0:
+                nearest_other_idx = other_times[-1]
+
+        if nearest_other_idx == -1:
+            return -1
+        
+        return nearest_other_idx
+        
+
+def create_map_with_trajectories(
+        site_map: go.Figure,
+        local_file: str,
+        site_data_store: dict[str, int], # все выбранные точки
+        site_coords: dict[Site, dict[Coordinate, float]],
+        sat: Sat,
+        data_colors: dict[Site, str],
+        time_value: list[int],
+        hm: float
+) -> go.Figure:
+    
+    if sat is None or local_file is None or \
+    site_coords is None or site_data_store is None or \
+    len(site_data_store) == 0 or hm is None or \
+    site_map.layout.geo.projection.type != ProjectionType.ORTHOGRAPHIC.value:
+        return site_map
+    
+    # Создаем список с объектом Trajectorie
+    trajectory_objs: list[Trajectorie] = get_objs_trajectories(
+        local_file, 
+        site_data_store, 
+        site_coords, 
+        sat, 
+        hm,
+    )
+
+    limit_start, limit_end = _create_limit_xaxis(time_value, local_file)
+    for traj in trajectory_objs:
+        if not traj.sat_exist: # данных по спутнику нет
+            continue
+        
+        # Ищем ближайщие индексы времени
+        traj.idx_start_point = __find_time(traj.times, limit_start)
+        traj.idx_end_point = __find_time(traj.times, limit_end, False)
+        if traj.traj_lat[traj.idx_start_point] is None:
+            traj.idx_start_point += 3
+        if traj.traj_lat[traj.idx_end_point] is None:
+            traj.idx_end_point -= 3
+
+        if traj.idx_start_point >= traj.idx_end_point or \
+            traj.idx_start_point == -1 or \
+            traj.idx_end_point == -1: # если не нашли, или нашли неверно
+            continue
+        
+        site_map_trajs = create_site_map_with_trajectories() # создаем объект для отрисовки траектории
+        site_map_end_trajs = create_site_map_with_end_trajectories() # создаем объект для отрисовки конца траектории
+
+        # Устанавливаем точки траектории
+        site_map_trajs.lat = traj.traj_lat[traj.idx_start_point:traj.idx_end_point:3]
+        site_map_trajs.lon = traj.traj_lon[traj.idx_start_point:traj.idx_end_point:3]
+        site_map_trajs.marker.color = data_colors[traj.site_name]
+
+        # Устанавливаем координаты последней точки
+        site_map_end_trajs.lat = [traj.traj_lat[traj.idx_end_point]]
+        site_map_end_trajs.lon = [traj.traj_lon[traj.idx_end_point]]
+        site_map_end_trajs.marker.color = data_colors[traj.site_name]
+
+        site_map.add_traces([site_map_trajs, site_map_end_trajs])
+    return site_map
 
 def create_site_data_with_values(
     site_data_store: dict[str, int],
@@ -122,11 +260,14 @@ def create_site_data_with_values(
     site_data = create_site_data()
     
     if site_data_store is not None:
+        # Определяем тип данных
         dataproduct = _define_data_type(data_types)
+        # Определяем размер сдвига
         if shift is None or shift == 0:
             shift = -1
             if dataproduct in [DataProducts.dtec_2_10, DataProducts.roti, DataProducts.dtec_10_20]:
                 shift = -0.5
+        # Добавляем данные        
         _add_lines(
             site_data,
             list(site_data_store.keys()),
@@ -136,12 +277,14 @@ def create_site_data_with_values(
             shift,
         )
         if len(site_data.data) > 0:
-            limit = _create_limit_xaxis(time_value, site_data)
+            # Ограничиваем вывод данных по времени
+            limit = _create_limit_xaxis(time_value, local_file) 
             site_data.update_layout(xaxis=dict(range=[limit[0], limit[1]]))
     return site_data
 
 
 def _define_data_type(data_types: str) -> DataProducts:
+    # Определяем тип данных
     dataproduct = DataProducts.dtec_2_10
     for name_data in DataProducts.__members__:
         if data_types == name_data:
@@ -158,18 +301,22 @@ def _add_lines(
     local_file: str,
     shift: float,
 ) -> None:
+    # Получем все возможные цвета
+    colors = px.colors.qualitative.Plotly
+    # Ивлекаем данные
     site_data_tmp, is_satellite = retrieve_data(
         local_file, sites_name, sat, dataproduct
     )
     scatters = []
     for i, name in enumerate(sites_name):
-        if sat is None or not is_satellite[name]:
+        if sat is None or not is_satellite[name]: # Если у станции нет спутника
             sat_tmp = list(site_data_tmp[name].keys())[0]
 
             vals = site_data_tmp[name][sat_tmp][dataproduct]
             times = site_data_tmp[name][sat_tmp][DataProducts.time]
             vals_tmp = np.zeros_like(vals)
 
+            # Рисуем прямую серую линию
             scatters.append(
                 go.Scatter(
                     x=times,
@@ -177,15 +324,16 @@ def _add_lines(
                     customdata=vals_tmp,
                     mode="markers",
                     name=name.upper(),
-                    line=dict(color="gray"),
                     hoverinfo="text",
                     hovertemplate="%{x}, %{customdata}<extra></extra>",
                     marker=dict(
                         size=2,
+                        color = "gray",
                     ),
                 )
             )
-        else:
+        else: # Если у станции есть спутник
+            # Если azimuth или elevation переводим в градусы
             if (
                 dataproduct == DataProducts.azimuth
                 or dataproduct == DataProducts.elevation
@@ -193,8 +341,12 @@ def _add_lines(
                 vals = np.degrees(site_data_tmp[name][sat][dataproduct])
             else:
                 vals = site_data_tmp[name][sat][dataproduct]
+
             times = site_data_tmp[name][sat][DataProducts.time]
 
+            # Определяем цвет данных на графике
+            idx_color = i if i < len(colors) else i - len(colors)*(i // len(colors))
+            # Рисуем данные
             scatters.append(
                 go.Scatter(
                     x=times,
@@ -206,11 +358,13 @@ def _add_lines(
                     hovertemplate="%{x}, %{customdata}<extra></extra>",
                     marker=dict(
                         size=3,
+                        color = colors[idx_color],
                     ),
                 )
             )
     site_data.add_traces(scatters)
 
+    # Настраиваем ось y для отображения имен станций
     site_data.layout.yaxis.tickmode = "array"
     site_data.layout.yaxis.tickvals = [
         shift * (i + 1) for i in range(len(sites_name))
@@ -219,9 +373,11 @@ def _add_lines(
 
 
 def _create_limit_xaxis(
-    time_value: list[int], site_data: go.Figure
+    time_value: list[int], local_file: str
 ) -> tuple[datetime]:
-    date = site_data.data[0].x[0]
+    # Переводим целые значения времени в datetime
+    date = local_file.split('\\')[1].replace('.h5', '')  # Получаем '2024-01-01'
+    date = datetime.strptime(date, '%Y-%m-%d')
 
     hour_start_limit = 23 if time_value[0] == 24 else time_value[0]
     minute_start_limit = 59 if time_value[0] == 24 else 0
