@@ -1,15 +1,18 @@
 from ..view import *
-from ..processing import *
+from spitec.processing.data_processing import *
+from spitec.processing.data_products import DataProducts
+from spitec.processing.trajectorie import Trajectorie
+from spitec.processing.site_processing import *
 from datetime import datetime, timezone
 import numpy as np
 from spitec.processing.trajectorie import Trajectorie
 import plotly.express as px
 
 
-def create_map_with_sites(
+def create_map_with_points(
     site_coords: dict[Site, dict[Coordinate, float]],
     projection_value: ProjectionType,
-    check_value: bool,
+    show_names_site: bool,
     region_site_names: dict[str, int],
     site_data_store: dict[str, int],
     relayout_data: dict[str, float],
@@ -18,8 +21,10 @@ def create_map_with_sites(
     site_map_points = create_site_map_with_points()
     site_map = create_fig_for_map(site_map_points)
 
+    # Смена проекции
     if projection_value != site_map.layout.geo.projection.type:
         site_map.update_layout(geo=dict(projection_type=projection_value))
+
     if site_coords is not None:
         site_array, lat_array, lon_array = get_namelatlon_arrays(site_coords)
 
@@ -60,27 +65,14 @@ def configure_show_site_names(
                 site.upper() if site in sites_name_lower else ""
                 for site in site_array
             ]
-            site_map.data[0].customdata = [
+        site_map.data[0].customdata = [
                 site.upper() if site not in sites_name_lower else ""
                 for site in site_array
             ]
-            site_map.data[0].hoverinfo = "text"
-            site_map.data[0].hovertemplate = (
+        site_map.data[0].hoverinfo = "text"
+        site_map.data[0].hovertemplate = (
                 "%{customdata} (%{lat}, %{lon})<extra></extra>"
             )
-        colors = np.array([PointColor.SILVER.value] * site_array.shape[0])
-
-        site_map.data[0].lat = lat_array
-        site_map.data[0].lon = lon_array
-        site_map.data[0].marker.color = colors
-
-        _change_points_on_map(region_site_names, site_data_store, site_map)
-    if relayout_data is not None:
-        _change_scale_map(
-            site_map, relayout_data, scale_map_store, projection_value
-        )
-    return site_map
-
 
 def _change_scale_map(
     site_map: go.Figure,
@@ -124,7 +116,6 @@ def _change_scale_map(
                 )
             )
         )
-
 
 def _change_points_on_map(
     region_site_names: dict[str, int],
