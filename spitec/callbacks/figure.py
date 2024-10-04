@@ -5,7 +5,6 @@ from spitec.processing.trajectorie import Trajectorie
 from spitec.processing.site_processing import *
 from datetime import datetime, timezone
 import numpy as np
-from spitec.processing.trajectorie import Trajectorie
 import plotly.express as px
 
 

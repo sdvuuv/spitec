@@ -3,7 +3,7 @@ from spitec.processing.data_processing import Sat
 from simurg_core.geospace.sub_ionospheric import sub_ionospheric
 import numpy as np
 from datetime import datetime, timedelta
-from numpy.typing import NDArray
+
 
 class Trajectorie:
     

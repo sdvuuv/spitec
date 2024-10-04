@@ -5,7 +5,6 @@ from ..processing import *
 from .figure import *
 import dash
 from pathlib import Path
-from numpy.typing import NDArray
 
 
 language = languages["en"]
