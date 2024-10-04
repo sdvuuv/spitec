@@ -3,6 +3,8 @@ stages:
     
 deploy:
   stage: deploy
+  tags:
+    - spitec
   script:
     - poetry install
     - |
@@ -12,3 +14,4 @@ deploy:
     - nohup poetry run gunicorn -w 4 -b 0.0.0.0:8050 --pid /tmp/gunicorn.pid main:server >./logging/log.txt 2>&1 &
   only:
     - main
+    
