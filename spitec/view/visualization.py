@@ -40,6 +40,7 @@ def create_layout() -> html.Div:
             dcc.Store(id="downloading-file-store", storage_type="session"),
             dcc.Store(id="scale-map-store", storage_type="session", data=1),
             dcc.Store(id="relayout-map-store", storage_type="session"),
+            dcc.Store(id="sip-tag-time-store", storage_type="session"),
             dcc.Location(id="url", refresh=False),
             dbc.Row(
                 [
@@ -170,8 +171,8 @@ def _create_left_side() -> list[dbc.Row]:
                         input_time,
                     ),
                     dbc.Button(
-                            language["trajectory"]["show-label-sip"],
-                            id="show-label-sip",
+                            language["trajectory"]["show-tag-sip"],
+                            id="show-tag-sip",
                             style={"margin-left": "20px"}
                         ),
                 ],
@@ -366,10 +367,13 @@ def create_site_map_with_trajectories() -> go.Scattergeo:
     )
     return site_map_trajs
 
-def create_site_map_with_end_trajectories() -> go.Scattergeo:
+def create_site_map_with_tag(
+        size: int = 5, 
+        symbol: str = 'diamond'  # Маркер ромб
+    ) -> go.Scattergeo:
     site_map_end_trajs = go.Scattergeo(
         mode='markers',
-        marker=dict(size=5, symbol='diamond'),  # Маркер ромб
+        marker=dict(size=size, symbol=symbol), 
         hovertemplate='%{lat}, %{lon}<extra></extra>'
     )
     return site_map_end_trajs
@@ -418,7 +422,7 @@ def _create_input_hm() -> dbc.Input:
 
 def _create_input_time() -> dbc.Input:
     input = dbc.Input(
-        id="input-time",
+        id="input-sip-tag-time",
         type="time",
         step=1,
         value="00:00:00",

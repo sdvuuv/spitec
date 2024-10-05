@@ -30,6 +30,7 @@ def register_callbacks(app: dash.Dash) -> None:
             State("graph-site-data", "figure"),
             State("time-slider", "value"),
             State("input-hm", "value"),
+            State("sip-tag-time-store", "data"),
         ],
         prevent_initial_call=True,
     )
@@ -44,6 +45,7 @@ def register_callbacks(app: dash.Dash) -> None:
         site_data: dict,
         time_value: list[int],
         input_hm: float,
+        sip_tag_time: str,
     ) -> list[go.Figure, int, None, dict[str, str]]:
         style_traj_error = {"visibility": "hidden"}
         site_map = create_map_with_points(
@@ -69,6 +71,7 @@ def register_callbacks(app: dash.Dash) -> None:
             colors,
             time_value,
             input_hm,
+            sip_tag_time,
         )
 
         if site_map.layout.geo.projection.type != ProjectionType.ORTHOGRAPHIC.value and \
@@ -107,6 +110,7 @@ def register_callbacks(app: dash.Dash) -> None:
             State("relayout-map-store", "data"),
             State("scale-map-store", "data"),
             State("input-hm", "value"),
+            State("sip-tag-time-store", "data"),
         ],
         prevent_initial_call=True,
     )
@@ -125,6 +129,7 @@ def register_callbacks(app: dash.Dash) -> None:
         relayout_data: dict[str, float],
         scale_map_store: float,
         input_hm: float,
+        sip_tag_time: str,
     ) -> list[go.Figure, None, bool, dict[str, int], dict[str, str]]:
         style_traj_error = {"visibility": "hidden"}
         if clickData is not None:
@@ -162,7 +167,8 @@ def register_callbacks(app: dash.Dash) -> None:
             sat, 
             colors,
             time_value,
-            input_hm
+            input_hm,
+            sip_tag_time,
         )
         if site_map.layout.geo.projection.type != ProjectionType.ORTHOGRAPHIC.value and \
         len(site_data.data) != 0:
@@ -196,6 +202,7 @@ def register_callbacks(app: dash.Dash) -> None:
             State("scale-map-store", "data"),
             State("input-hm", "value"),
             State("region-site-names-store", "data"),
+            State("sip-tag-time-store", "data"),
         ],
         prevent_initial_call=True,
     )
@@ -213,6 +220,7 @@ def register_callbacks(app: dash.Dash) -> None:
         scale_map_store: float,
         input_hm: float,
         region_site_names: dict[str, int],
+        sip_tag_time: str,
     ) -> list[go.Figure | bool]:
         site_data = create_site_data_with_values(
             site_data_store, sat, data_types, local_file, time_value, shift
@@ -240,7 +248,8 @@ def register_callbacks(app: dash.Dash) -> None:
             sat, 
             colors,
             time_value,
-            input_hm
+            input_hm,
+            sip_tag_time,
         )
 
         return site_data, disabled, site_map
@@ -252,6 +261,7 @@ def register_callbacks(app: dash.Dash) -> None:
             Output("time-slider", "disabled", allow_duplicate=True),
             Output("site-data-store", "data", allow_duplicate=True),
             Output("trajectory-error", "style", allow_duplicate=True),
+            Output("sip-tag-time-store", "data", allow_duplicate=True),
         ],
         [Input("clear-all", "n_clicks")],
         [
@@ -272,7 +282,7 @@ def register_callbacks(app: dash.Dash) -> None:
         site_coords: dict[Site, dict[Coordinate, float]],
         relayout_data: dict[str, float],
         scale_map_store: float,
-    ) -> list[go.Figure | bool | None, dict[str, str]]:
+    ) -> list[go.Figure, bool, None, dict[str, str], None]:
         site_data = create_site_data_with_values(
             None, None, None, None, None, None
         )
@@ -281,13 +291,13 @@ def register_callbacks(app: dash.Dash) -> None:
             projection_value,
             show_names_site,
             region_site_names,
-            region_site_names,
+            None,
             relayout_data,
             scale_map_store,
         )
         disabled = True
         style_traj_error = {"visibility": "hidden"}
-        return site_map, site_data, disabled, None, style_traj_error
+        return site_map, site_data, disabled, None, style_traj_error, None
 
     @app.callback(
         [
@@ -326,6 +336,7 @@ def register_callbacks(app: dash.Dash) -> None:
             State("selection-satellites", "value"),
             State("time-slider", "value"),
             State("input-hm", "value"),
+            State("sip-tag-time-store", "data"),
         ],
         prevent_initial_call=True,
     )
@@ -342,6 +353,7 @@ def register_callbacks(app: dash.Dash) -> None:
         sat: Sat,
         time_value: list[int],
         input_hm: float,
+        sip_tag_time: str,
     ) -> go.Figure:
         site_map = create_map_with_points(
             site_coords,
@@ -365,7 +377,8 @@ def register_callbacks(app: dash.Dash) -> None:
             sat, 
             colors,
             time_value,
-            input_hm
+            input_hm,
+            sip_tag_time,
         )
         return site_map
 
@@ -396,6 +409,7 @@ def register_callbacks(app: dash.Dash) -> None:
             State("selection-satellites", "value"),
             State("time-slider", "value"),
             State("input-hm", "value"),
+            State("sip-tag-time-store", "data"),
         ],
         prevent_initial_call=True,
     )
@@ -417,6 +431,7 @@ def register_callbacks(app: dash.Dash) -> None:
         sat: Sat,
         time_value: list[int],
         input_hm: float,
+        sip_tag_time: str,
     ) -> list[go.Figure | bool | dict[str, int]]:
         return_value_list = [
             None,
@@ -469,7 +484,8 @@ def register_callbacks(app: dash.Dash) -> None:
             sat, 
             colors,
             time_value,
-            input_hm
+            input_hm,
+            sip_tag_time,
         )
         return return_value_list
 
@@ -506,6 +522,7 @@ def register_callbacks(app: dash.Dash) -> None:
             State("selection-satellites", "value"),
             State("time-slider", "value"),
             State("input-hm", "value"),
+            State("sip-tag-time-store", "data"),
         ],
         prevent_initial_call=True,
     )
@@ -526,6 +543,7 @@ def register_callbacks(app: dash.Dash) -> None:
         sat: Sat,
         time_value: list[int],
         input_hm: float,
+        sip_tag_time: str,
     ) -> list[go.Figure | bool | dict[str, int]]:
         return_value_list = [None, False, False, False, region_site_names]
         sites = region_site_names
@@ -574,7 +592,8 @@ def register_callbacks(app: dash.Dash) -> None:
             sat, 
             colors,
             time_value,
-            input_hm
+            input_hm,
+            sip_tag_time,
         )
         return return_value_list
 
@@ -599,6 +618,7 @@ def register_callbacks(app: dash.Dash) -> None:
             State("selection-satellites", "value"),
             State("time-slider", "value"),
             State("input-hm", "value"),
+            State("sip-tag-time-store", "data"),
         ],
         prevent_initial_call=True,
     )
@@ -616,6 +636,7 @@ def register_callbacks(app: dash.Dash) -> None:
         sat: Sat,
         time_value: list[int],
         input_hm: float,
+        sip_tag_time: str,
     ) -> list[go.Figure | None]:
         site_map = create_map_with_points(
             site_coords,
@@ -639,7 +660,8 @@ def register_callbacks(app: dash.Dash) -> None:
             sat, 
             colors,
             time_value,
-            input_hm
+            input_hm,
+            sip_tag_time,
         )
         return site_map, None
 
@@ -812,6 +834,7 @@ def register_callbacks(app: dash.Dash) -> None:
             Output("satellites-options-store", "data"),
             Output("scale-map-store", "data", allow_duplicate=True),
             Output("relayout-map-store", "data", allow_duplicate=True),
+            Output("sip-tag-time-store", "data", allow_duplicate=True),
         ],
         [Input("open-file", "n_clicks")],
         [
@@ -858,6 +881,7 @@ def register_callbacks(app: dash.Dash) -> None:
             options,
             scale_map,
             None,
+            None
         )
 
     @app.callback(
@@ -897,6 +921,7 @@ def register_callbacks(app: dash.Dash) -> None:
             State("scale-map-store", "data"),
             State("graph-site-data", "figure"),
             State("region-site-names-store", "data"),
+            State("sip-tag-time-store", "data"),
         ],
         prevent_initial_call=True,
     )
@@ -911,7 +936,72 @@ def register_callbacks(app: dash.Dash) -> None:
         site_coords: dict[Site, dict[Coordinate, float]],
         relayout_data: dict[str, float],
         scale_map_store: float,
-        
+        site_data: dict,
+        region_site_names: dict[str, int],
+        sip_tag_time: str,
+    ) -> go.Figure:
+        colors = {}
+        for data in site_data["data"]:
+            colors[data["name"].lower()] = data["marker"]["color"]
+
+        site_map = create_map_with_points(
+            site_coords,
+            projection_value,
+            show_names_site,
+            region_site_names,
+            site_data_store,
+            relayout_data,
+            scale_map_store,
+        )
+        site_map = create_map_with_trajectories(
+            site_map,
+            local_file,
+            site_data_store,
+            site_coords,
+            sat, 
+            colors,
+            time_value,
+            input_hm,
+            sip_tag_time,
+        )
+        return site_map
+    
+    @app.callback(
+        [
+            Output("graph-site-map", "figure", allow_duplicate=True),
+            Output("sip-tag-time-store", "data", allow_duplicate=True),
+         ],
+        [Input("show-tag-sip", "n_clicks")],
+        [
+            State("input-sip-tag-time", "value"),
+            State("input-hm", "value"),
+            State("selection-satellites", "value"),
+            State("local-file-store", "data"),
+            State("site-data-store", "data"),
+            State("time-slider", "value"),
+            State("projection-radio", "value"),
+            State("hide-show-site", "value"),
+            State("site-coords-store", "data"),
+            State("relayout-map-store", "data"),
+            State("scale-map-store", "data"),
+            State("graph-site-data", "figure"),
+            State("region-site-names-store", "data"),
+        ],
+        prevent_initial_call=True,
+    )
+    def show_sip_tag(
+        n: int,
+        sip_tag_time: str,
+        input_hm: float,
+        sat: Sat,
+        local_file: str,
+        site_data_store: dict[str, int],
+        time_value: list[int],
+        projection_value: ProjectionType,
+        show_names_site: bool,
+        site_coords: dict[Site, dict[Coordinate, float]],
+        relayout_data: dict[str, float],
+        scale_map_store: float,
         site_data: dict,
         region_site_names: dict[str, int],
     ) -> go.Figure:
@@ -936,9 +1026,10 @@ def register_callbacks(app: dash.Dash) -> None:
             sat, 
             colors,
             time_value,
-            input_hm
+            input_hm,
+            sip_tag_time
         )
-        return site_map
+        return site_map, sip_tag_time
 
     @app.callback(
         [Output("graph-site-data", "figure", allow_duplicate=True),
@@ -957,6 +1048,7 @@ def register_callbacks(app: dash.Dash) -> None:
             State("scale-map-store", "data"),
             State("input-hm", "value"),
             State("region-site-names-store", "data"),
+            State("sip-tag-time-store", "data"),
         ],
         prevent_initial_call=True,
     )
@@ -974,6 +1066,7 @@ def register_callbacks(app: dash.Dash) -> None:
         scale_map_store: float,
         input_hm: float,
         region_site_names: dict[str, int],
+        sip_tag_time: str,
     ) -> go.Figure:
         site_data = create_site_data_with_values(
             site_data_store, sat, data_types, local_file, time_value, shift
@@ -999,7 +1092,8 @@ def register_callbacks(app: dash.Dash) -> None:
             sat, 
             colors,
             time_value,
-            input_hm
+            input_hm,
+            sip_tag_time,
         )
         return site_data, site_map
 
@@ -1052,6 +1146,7 @@ def register_callbacks(app: dash.Dash) -> None:
             State("selection-satellites", "value"),
             State("input-shift", "value"),
             State("input-hm", "value"),
+            State("sip-tag-time-store", "data"),
         ],
     )
     def update_all(
@@ -1068,6 +1163,7 @@ def register_callbacks(app: dash.Dash) -> None:
         sat: Sat,
         shift: float,
         input_hm: float,
+        sip_tag_time: str,
     ) -> list[go.Figure, bool, list[dict[str, str]], dict[str, str]]:
         style_traj_error = {"visibility": "hidden"}
         site_map = create_map_with_points(
@@ -1095,7 +1191,8 @@ def register_callbacks(app: dash.Dash) -> None:
             sat, 
             colors,
             time_value,
-            input_hm
+            input_hm,
+            sip_tag_time
         )
             
         disabled = True if len(site_data.data) == 0 else False

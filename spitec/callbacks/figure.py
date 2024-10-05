@@ -167,10 +167,12 @@ def get_objs_trajectories(
 
 def __find_time(times: NDArray, target_time: datetime, look_more = True):
     exact_match_idx = np.where(times == target_time)[0]
+    exact_time = False
 
     if exact_match_idx.size > 0:
         # Если точное совпадение найдено
-        return exact_match_idx[0]
+        exact_time = True
+        return exact_match_idx[0], exact_time
     else:
         # Если точного совпадения нет, ищем ближайшее большее/меньшее время
         nearest_other_idx = -1
@@ -184,9 +186,9 @@ def __find_time(times: NDArray, target_time: datetime, look_more = True):
                 nearest_other_idx = other_times[-1]
 
         if nearest_other_idx == -1:
-            return -1
+            return -1, exact_time
         
-        return nearest_other_idx
+        return nearest_other_idx, exact_time
         
 
 def create_map_with_trajectories(
@@ -197,13 +199,14 @@ def create_map_with_trajectories(
         sat: Sat,
         data_colors: dict[Site, str],
         time_value: list[int],
-        hm: float
+        hm: float,
+        sip_tag_time: str,
 ) -> go.Figure:
     
     if sat is None or local_file is None or \
-    site_coords is None or site_data_store is None or \
-    len(site_data_store) == 0 or hm is None or \
-    site_map.layout.geo.projection.type != ProjectionType.ORTHOGRAPHIC.value:
+        site_coords is None or site_data_store is None or \
+            len(site_data_store) == 0 or hm is None or \
+                site_map.layout.geo.projection.type != ProjectionType.ORTHOGRAPHIC.value:
         return site_map
     
     # Создаем список с объектом Trajectorie
@@ -214,15 +217,14 @@ def create_map_with_trajectories(
         sat, 
         hm,
     )
-
     limit_start, limit_end = _create_limit_xaxis(time_value, local_file)
     for traj in trajectory_objs:
         if not traj.sat_exist: # данных по спутнику нет
             continue
         
         # Ищем ближайщие индексы времени
-        traj.idx_start_point = __find_time(traj.times, limit_start)
-        traj.idx_end_point = __find_time(traj.times, limit_end, False)
+        traj.idx_start_point, _ = __find_time(traj.times, limit_start)
+        traj.idx_end_point, _ = __find_time(traj.times, limit_end, False)
         if traj.traj_lat[traj.idx_start_point] is None:
             traj.idx_start_point += 3
         if traj.traj_lat[traj.idx_end_point] is None:
@@ -232,21 +234,79 @@ def create_map_with_trajectories(
             traj.idx_start_point == -1 or \
             traj.idx_end_point == -1: # если не нашли, или нашли неверно
             continue
-        
-        site_map_trajs = create_site_map_with_trajectories() # создаем объект для отрисовки траектории
-        site_map_end_trajs = create_site_map_with_end_trajectories() # создаем объект для отрисовки конца траектории
+
+        # создаем объекты для отрисовки траектории
+        site_map_trajs, site_map_end_trajs = create_trajectory(data_colors[traj.site_name], traj)
+        site_map.add_traces([site_map_trajs, site_map_end_trajs])
+
+    if sip_tag_time is not None:
+        site_map = add_sip_tag(site_map, local_file, sip_tag_time, trajectory_objs, data_colors)
+    return site_map
+
+def create_trajectory(
+        current_color: str,
+        traj: Trajectorie,
+    ) -> list[go.Scattergeo]:
+    site_map_trajs = create_site_map_with_trajectories() # создаем объект для отрисовки траектории
+    site_map_end_trajs = create_site_map_with_tag() # создаем объект для отрисовки конца траектории
 
         # Устанавливаем точки траектории
-        site_map_trajs.lat = traj.traj_lat[traj.idx_start_point:traj.idx_end_point:3]
-        site_map_trajs.lon = traj.traj_lon[traj.idx_start_point:traj.idx_end_point:3]
-        site_map_trajs.marker.color = data_colors[traj.site_name]
+    site_map_trajs.lat = traj.traj_lat[traj.idx_start_point:traj.idx_end_point:3]
+    site_map_trajs.lon = traj.traj_lon[traj.idx_start_point:traj.idx_end_point:3]
+    site_map_trajs.marker.color = current_color
 
         # Устанавливаем координаты последней точки
-        site_map_end_trajs.lat = [traj.traj_lat[traj.idx_end_point]]
-        site_map_end_trajs.lon = [traj.traj_lon[traj.idx_end_point]]
-        site_map_end_trajs.marker.color = data_colors[traj.site_name]
+    site_map_end_trajs.lat = [traj.traj_lat[traj.idx_end_point]]
+    site_map_end_trajs.lon = [traj.traj_lon[traj.idx_end_point]]
+    site_map_end_trajs.marker.color = current_color
 
-        site_map.add_traces([site_map_trajs, site_map_end_trajs])
+    return site_map_trajs, site_map_end_trajs
+
+def add_sip_tag(
+        site_map: go.Figure,
+        local_file: str, 
+        sip_tag_time: str,
+        trajectory_objs: list[Trajectorie],
+        data_colors: dict[Site, str],
+    ):
+    current_date = local_file.split('\\')[1].replace('.h5', '')  # Получаем '2024-01-01'
+    sip_tag_datetime = datetime.strptime(f"{current_date} {sip_tag_time}", "%Y-%m-%d %H:%M:%S")
+    sip_tag_datetime = sip_tag_datetime.replace(tzinfo=timezone.utc)
+
+    tag_lat = []
+    tag_lon = []
+    tag_color = []
+
+    for traj in trajectory_objs:
+        if not traj.sat_exist: # данных по спутнику нет
+            continue
+
+        # получаем индекс метки времени
+        sip_tag_idx, exact_time = __find_time(traj.times, sip_tag_datetime) 
+
+        idx_start_point = traj.idx_start_point
+        idx_end_point = traj.idx_end_point
+        if idx_start_point == -1:
+            idx_start_point = sip_tag_idx + 1
+
+        if idx_end_point == -1:
+            idx_end_point = sip_tag_idx - 1
+
+        if exact_time and \
+            traj.traj_lat[sip_tag_idx] is not None and \
+                sip_tag_idx >= idx_start_point and \
+                    sip_tag_idx <= idx_end_point:
+            tag_lat.append(traj.traj_lat[sip_tag_idx])
+            tag_lon.append(traj.traj_lon[sip_tag_idx])
+            tag_color.append(data_colors[traj.site_name])
+
+    site_map_tags = create_site_map_with_tag(10, "star")
+
+    site_map_tags.lat = tag_lat
+    site_map_tags.lon = tag_lon
+    site_map_tags.marker.color = tag_color
+    
+    site_map.add_trace(site_map_tags)
     return site_map
 
 def create_site_data_with_values(
