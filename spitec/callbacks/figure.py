@@ -269,7 +269,7 @@ def add_sip_tag(
         trajectory_objs: list[Trajectorie],
         data_colors: dict[Site, str],
     ):
-    current_date = local_file.split('\\')[1].replace('.h5', '')  # Получаем '2024-01-01'
+    current_date = local_file.split('/')[1].replace('.h5', '')  # Получаем '2024-01-01'
     sip_tag_datetime = datetime.strptime(f"{current_date} {sip_tag_time}", "%Y-%m-%d %H:%M:%S")
     sip_tag_datetime = sip_tag_datetime.replace(tzinfo=timezone.utc)
 
