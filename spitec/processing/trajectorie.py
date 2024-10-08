@@ -53,7 +53,7 @@ class Trajectorie:
         self.idx_end_point = len(self.traj_lon) - 1 if len(self.traj_lat) != 0 else 0
  
     def __adding_artificial_value(self, minutes: int = 10) -> None:
-        # Добавлеем в lat и lon значение None там, где разрыв во времени больше 10 мин
+        # Добавлеем в lat и lon значение None там, где разрыв во времени больше minutes мин
         interval = timedelta(minutes=minutes)
         diffs = np.diff(self.times)
         # Ищем индексы
