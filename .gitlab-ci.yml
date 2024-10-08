@@ -1,17 +1,53 @@
 stages:
-    - deploy
-    
-deploy:
-  stage: deploy
+  - stop_app   # Этап для остановки запущенного приложения
+  - install_deps  # Этап для установки зависимостей
+  - create_logs  # Этап для создания директории логов
+  - start_app  # Этап для запуска приложения
+
+# Этап остановки приложения
+stop_app:
+  stage: stop_app
+  tags:
+    - spitec
+  script:
+    # Завершение запущенной программы, если она существует
+    - |
+      if [ -f "/tmp/gunicorn.pid" ]; then
+        kill -9 $(cat /tmp/gunicorn.pid) || true
+        rm /tmp/gunicorn.pid
+      fi
+  only:
+    - main
+
+# Этап установки зависимостей
+install_deps:
+  stage: install_deps
   tags:
     - spitec
   script:
     - poetry install
-    - |
-      if [ ! -d "./logging" ]; then
-        mkdir logging;
-      fi
-    - nohup poetry run gunicorn -w 4 -b 0.0.0.0:8050 --pid /tmp/gunicorn.pid main:server >./logging/log.txt 2>&1 &
   only:
     - main
-    
+
+# Этап создания директории для логов
+create_logs:
+  stage: create_logs
+  tags:
+    - spitec
+  script:
+    - |
+      if [ ! -d "./logging" ]; then
+        mkdir logging
+      fi
+  only:
+    - main
+
+# Этап запуска приложения
+start_app:
+  stage: start_app
+  tags:
+    - spitec
+  script:
+    - nohup poetry run gunicorn -w 4 -b 0.0.0.0:8050 --pid /tmp/gunicorn.pid main:server > ./logging/log.txt 2>&1 &
+  only:
+    - main
