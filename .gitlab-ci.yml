@@ -39,6 +39,16 @@ start_app:
         mkdir logging
       fi
     - nohup poetry run gunicorn -w 4 -b 0.0.0.0:8050 --pid /tmp/gunicorn.pid main:server > ./logging/log.txt 2>&1 &
+    # Ждём, пока PID-файл не будет создан. Это означает, что приложение запустилось
+    - |
+      COUNTER=0
+      while [ ! -f /tmp/gunicorn.pid ]; do
+        if [ $COUNTER -ge 15 ]; then
+          exit 1
+        fi
+        sleep 1
+        COUNTER=$((COUNTER+1))
+      done
   only:
     - main
   artifacts:
