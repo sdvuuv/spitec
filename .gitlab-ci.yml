@@ -51,3 +51,7 @@ start_app:
     - nohup poetry run gunicorn -w 4 -b 0.0.0.0:8050 --pid /tmp/gunicorn.pid main:server > ./logging/log.txt 2>&1 &
   only:
     - main
+  artifacts:
+    paths:
+      - ./logging/log.txt
+    expire_in: 1 week  

@@ -6,6 +6,7 @@ from spitec.processing.site_processing import *
 from datetime import datetime, timezone
 import numpy as np
 import plotly.express as px
+from pathlib import Path
 
 
 def create_map_with_points(
@@ -132,8 +133,8 @@ def _change_points_on_map(
             colors[idx] = PointColor.RED.value
     site_map.data[0].marker.color = colors
 
-def get_objs_trajectories(
-        local_file: str,
+def _get_objs_trajectories(
+        local_file: Path,
         site_data_store: dict[str, int], # все выбранные точки
         site_coords: dict[Site, dict[Coordinate, float]],
         sat: Sat,
@@ -165,7 +166,7 @@ def get_objs_trajectories(
         )
     return list_trajectorie
 
-def __find_time(times: NDArray, target_time: datetime, look_more = True):
+def _find_time(times: NDArray, target_time: datetime, look_more = True):
     exact_match_idx = np.where(times == target_time)[0]
     exact_time = False
 
@@ -209,22 +210,24 @@ def create_map_with_trajectories(
                 site_map.layout.geo.projection.type != ProjectionType.ORTHOGRAPHIC.value:
         return site_map
     
+    local_file_path = Path(local_file)
+    
     # Создаем список с объектом Trajectorie
-    trajectory_objs: list[Trajectorie] = get_objs_trajectories(
-        local_file, 
+    trajectory_objs: list[Trajectorie] = _get_objs_trajectories(
+        local_file_path, 
         site_data_store, 
         site_coords, 
         sat, 
         hm,
     )
-    limit_start, limit_end = _create_limit_xaxis(time_value, local_file)
+    limit_start, limit_end = _create_limit_xaxis(time_value, local_file_path)
     for traj in trajectory_objs:
         if not traj.sat_exist: # данных по спутнику нет
             continue
         
         # Ищем ближайщие индексы времени
-        traj.idx_start_point, _ = __find_time(traj.times, limit_start)
-        traj.idx_end_point, _ = __find_time(traj.times, limit_end, False)
+        traj.idx_start_point, _ = _find_time(traj.times, limit_start)
+        traj.idx_end_point, _ = _find_time(traj.times, limit_end, False)
         if traj.traj_lat[traj.idx_start_point] is None:
             traj.idx_start_point += 3
         if traj.traj_lat[traj.idx_end_point] is None:
@@ -236,14 +239,14 @@ def create_map_with_trajectories(
             continue
 
         # создаем объекты для отрисовки траектории
-        site_map_trajs, site_map_end_trajs = create_trajectory(data_colors[traj.site_name], traj)
+        site_map_trajs, site_map_end_trajs = _create_trajectory(data_colors[traj.site_name], traj)
         site_map.add_traces([site_map_trajs, site_map_end_trajs])
 
     if sip_tag_time is not None:
-        site_map = add_sip_tag(site_map, local_file, sip_tag_time, trajectory_objs, data_colors)
+        site_map = _add_sip_tag(site_map, local_file_path, sip_tag_time, trajectory_objs, data_colors)
     return site_map
 
-def create_trajectory(
+def _create_trajectory(
         current_color: str,
         traj: Trajectorie,
     ) -> list[go.Scattergeo]:
@@ -262,14 +265,14 @@ def create_trajectory(
 
     return site_map_trajs, site_map_end_trajs
 
-def add_sip_tag(
+def _add_sip_tag(
         site_map: go.Figure,
-        local_file: str, 
+        local_file: Path, 
         sip_tag_time: str,
         trajectory_objs: list[Trajectorie],
         data_colors: dict[Site, str],
     ):
-    current_date = local_file.split('/')[1].replace('.h5', '')  # Получаем '2024-01-01'
+    current_date = local_file.stem  # Получаем '2024-01-01'
     sip_tag_datetime = datetime.strptime(f"{current_date} {sip_tag_time}", "%Y-%m-%d %H:%M:%S")
     sip_tag_datetime = sip_tag_datetime.replace(tzinfo=timezone.utc)
 
@@ -282,7 +285,7 @@ def add_sip_tag(
             continue
 
         # получаем индекс метки времени
-        sip_tag_idx, exact_time = __find_time(traj.times, sip_tag_datetime) 
+        sip_tag_idx, exact_time = _find_time(traj.times, sip_tag_datetime) 
 
         idx_start_point = traj.idx_start_point
         idx_end_point = traj.idx_end_point
@@ -320,6 +323,8 @@ def create_site_data_with_values(
     site_data = create_site_data()
     
     if site_data_store is not None:
+        local_file_path = Path(local_file)
+        
         # Определяем тип данных
         dataproduct = _define_data_type(data_types)
         # Определяем размер сдвига
@@ -333,12 +338,12 @@ def create_site_data_with_values(
             list(site_data_store.keys()),
             sat,
             dataproduct,
-            local_file,
+            local_file_path,
             shift,
         )
         if len(site_data.data) > 0:
             # Ограничиваем вывод данных по времени
-            limit = _create_limit_xaxis(time_value, local_file) 
+            limit = _create_limit_xaxis(time_value, local_file_path) 
             site_data.update_layout(xaxis=dict(range=[limit[0], limit[1]]))
     return site_data
 
@@ -358,7 +363,7 @@ def _add_lines(
     sites_name: list[Site],
     sat: Sat,
     dataproduct: DataProducts,
-    local_file: str,
+    local_file: Path,
     shift: float,
 ) -> None:
     # Получем все возможные цвета
@@ -433,10 +438,10 @@ def _add_lines(
 
 
 def _create_limit_xaxis(
-    time_value: list[int], local_file: str
+    time_value: list[int], local_file: Path
 ) -> tuple[datetime]:
     # Переводим целые значения времени в datetime
-    date = local_file.split('\\')[1].replace('.h5', '')  # Получаем '2024-01-01'
+    date = local_file.stem  # Получаем '2024-01-01'
     date = datetime.strptime(date, '%Y-%m-%d')
 
     hour_start_limit = 23 if time_value[0] == 24 else time_value[0]
