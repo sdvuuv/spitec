@@ -94,6 +94,7 @@ def register_callbacks(app: dash.Dash) -> None:
             Output("time-slider", "disabled", allow_duplicate=True),
             Output("site-data-store", "data", allow_duplicate=True),
             Output("trajectory-error", "style", allow_duplicate=True),
+            Output("sip-tag-time-store", "data", allow_duplicate=True),
         ],
         [Input("graph-site-map", "clickData")],
         [
@@ -132,7 +133,7 @@ def register_callbacks(app: dash.Dash) -> None:
         sip_tag_time: str,
     ) -> list[go.Figure, None, bool, dict[str, int], dict[str, str]]:
         style_traj_error = {"visibility": "hidden"}
-        if clickData is not None:
+        if clickData is not None and clickData["points"][0]["curveNumber"] == 0:
             pointIndex = clickData["points"][0]["pointIndex"]
             site_name = list(site_coords.keys())[pointIndex]
             if site_data_store is None:
@@ -152,7 +153,13 @@ def register_callbacks(app: dash.Dash) -> None:
             scale_map_store,
         )
         site_data = create_site_data_with_values(
-            site_data_store, sat, data_types, local_file, time_value, shift
+            site_data_store,
+            sat,
+            data_types,
+            local_file,
+            time_value,
+            shift,
+            sip_tag_time
         )
 
         colors = {}
@@ -180,7 +187,9 @@ def register_callbacks(app: dash.Dash) -> None:
             }
 
         disabled = True if len(site_data.data) == 0 else False
-        return site_map, None, site_data, disabled, site_data_store, style_traj_error
+        if not site_data_store:
+            sip_tag_time = None
+        return site_map, None, site_data, disabled, site_data_store, style_traj_error, sip_tag_time
 
     @app.callback(
         [
@@ -223,7 +232,13 @@ def register_callbacks(app: dash.Dash) -> None:
         sip_tag_time: str,
     ) -> list[go.Figure | bool]:
         site_data = create_site_data_with_values(
-            site_data_store, sat, data_types, local_file, time_value, shift
+            site_data_store,
+            sat,
+            data_types,
+            local_file,
+            time_value,
+            shift,
+            sip_tag_time
         )
         disabled = True if len(site_data.data) == 0 else False
 
@@ -284,7 +299,7 @@ def register_callbacks(app: dash.Dash) -> None:
         scale_map_store: float,
     ) -> list[go.Figure, bool, None, dict[str, str], None]:
         site_data = create_site_data_with_values(
-            None, None, None, None, None, None
+            None, None, None, None, None, None, None
         )
         site_map = create_map_with_points(
             site_coords,
@@ -970,6 +985,7 @@ def register_callbacks(app: dash.Dash) -> None:
         [
             Output("graph-site-map", "figure", allow_duplicate=True),
             Output("sip-tag-time-store", "data", allow_duplicate=True),
+            Output("graph-site-data", "figure", allow_duplicate=True),
          ],
         [Input("show-tag-sip", "n_clicks")],
         [
@@ -986,6 +1002,8 @@ def register_callbacks(app: dash.Dash) -> None:
             State("scale-map-store", "data"),
             State("graph-site-data", "figure"),
             State("region-site-names-store", "data"),
+            State("selection-data-types", "value"),
+            State("input-shift", "value"),
         ],
         prevent_initial_call=True,
     )
@@ -1004,10 +1022,22 @@ def register_callbacks(app: dash.Dash) -> None:
         scale_map_store: float,
         site_data: dict,
         region_site_names: dict[str, int],
+        data_types: str,
+        shift: float,
     ) -> go.Figure:
+        site_data = create_site_data_with_values(
+            site_data_store,
+            sat,
+            data_types,
+            local_file,
+            time_value,
+            shift,
+            sip_tag_time
+        )
+
         colors = {}
-        for data in site_data["data"]:
-            colors[data["name"].lower()] = data["marker"]["color"]
+        for data in site_data.data:
+            colors[data.name.lower()] = data.marker.color
 
         site_map = create_map_with_points(
             site_coords,
@@ -1029,7 +1059,9 @@ def register_callbacks(app: dash.Dash) -> None:
             input_hm,
             sip_tag_time
         )
-        return site_map, sip_tag_time
+        if not site_data_store:
+            sip_tag_time = None
+        return site_map, sip_tag_time, site_data
 
     @app.callback(
         [Output("graph-site-data", "figure", allow_duplicate=True),
@@ -1069,7 +1101,13 @@ def register_callbacks(app: dash.Dash) -> None:
         sip_tag_time: str,
     ) -> go.Figure:
         site_data = create_site_data_with_values(
-            site_data_store, sat, data_types, local_file, time_value, shift
+            site_data_store,
+            sat,
+            data_types,
+            local_file,
+            time_value,
+            shift,
+            sip_tag_time
         )
         colors = {}
         for data in site_data["data"]:
@@ -1106,6 +1144,7 @@ def register_callbacks(app: dash.Dash) -> None:
             State("site-data-store", "data"),
             State("time-slider", "value"),
             State("selection-satellites", "value"),
+            State("sip-tag-time-store", "data"),
         ],
         prevent_initial_call=True,
     )
@@ -1116,9 +1155,16 @@ def register_callbacks(app: dash.Dash) -> None:
         site_data_store: dict[str, int],
         time_value: list[int],
         sat: Sat,
+        sip_tag_time: str,
     ) -> go.Figure:
         site_data = create_site_data_with_values(
-            site_data_store, sat, data_types, local_file, time_value, shift
+            site_data_store,
+            sat,
+            data_types,
+            local_file,
+            time_value,
+            shift,
+            sip_tag_time
         )
         return site_data
 
@@ -1176,7 +1222,13 @@ def register_callbacks(app: dash.Dash) -> None:
             None,
         )
         site_data = create_site_data_with_values(
-            site_data_store, sat, data_types, local_file, time_value, shift
+            site_data_store,
+            sat,
+            data_types,
+            local_file,
+            time_value,
+            shift,
+            sip_tag_time
         )
 
         colors = {}

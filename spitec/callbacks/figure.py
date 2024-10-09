@@ -242,7 +242,7 @@ def create_map_with_trajectories(
         site_map_trajs, site_map_end_trajs = _create_trajectory(data_colors[traj.site_name], traj)
         site_map.add_traces([site_map_trajs, site_map_end_trajs])
 
-    if sip_tag_time is not None:
+    if sip_tag_time is not None and len(sip_tag_time) == 8:
         site_map = _add_sip_tag(site_map, local_file_path, sip_tag_time, trajectory_objs, data_colors)
     return site_map
 
@@ -319,11 +319,18 @@ def create_site_data_with_values(
     local_file: str,
     time_value: list[int],
     shift: float,
+    sip_tag_time: str,
 ) -> go.Figure:
     site_data = create_site_data()
     
-    if site_data_store is not None:
+    if site_data_store is not None and site_data_store:
         local_file_path = Path(local_file)
+
+        if sip_tag_time is not None and len(sip_tag_time) == 8:
+            current_date = local_file_path.stem  # Получаем '2024-01-01'
+            sip_tag_datetime = datetime.strptime(f"{current_date} {sip_tag_time}", "%Y-%m-%d %H:%M:%S")
+            sip_tag_datetime = sip_tag_datetime.replace(tzinfo=timezone.utc)
+            _add_sip_tag_line(site_data, sip_tag_datetime)
         
         # Определяем тип данных
         dataproduct = _define_data_type(data_types)
@@ -346,6 +353,25 @@ def create_site_data_with_values(
             limit = _create_limit_xaxis(time_value, local_file_path) 
             site_data.update_layout(xaxis=dict(range=[limit[0], limit[1]]))
     return site_data
+
+def _add_sip_tag_line(
+        site_data: go.Figure,
+        sip_tag_datetime: datetime
+    ) -> None:
+    site_data.add_shape(
+        type="line",
+        x0=sip_tag_datetime,
+        x1=sip_tag_datetime,
+        y0=0,
+        y1=1,  
+        yref="paper",  
+        line=dict(
+            color="darkblue",  
+            width=1,      
+            dash="dash" 
+        )
+    )
+
 
 
 def _define_data_type(data_types: str) -> DataProducts:
