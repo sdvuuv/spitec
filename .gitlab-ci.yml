@@ -44,6 +44,7 @@ start_app:
       COUNTER=0
       while [ ! -f /tmp/gunicorn.pid ]; do
         if [ $COUNTER -ge 15 ]; then
+          sleep 5
           exit 1
         fi
         sleep 1
