@@ -7,6 +7,8 @@ languages = {
             "clear-all": "Очистить всё",
             "apply-selection-by-region": "Применить",
             "clear-selection-by-region": "Очистить выборку",
+            "delete-all-points": "Удалить всё",
+            "add-point": "Добавить",
             "check-file-size": "Проверить размер файла",
         },
         "graph-site-map": {
@@ -26,18 +28,24 @@ languages = {
             },
             "selection-satellites": "Спутник",
         },
-        "tab-lat-lon": {
-            "label": "Выборка по широте и долготе",
+        "tab-sampling-region": {
+            "label": "Выборка по региону",
+            "title-lat-lon": "Выборка по широте и долготе",
             "min-lat": "Мин. шир.",
             "max-lat": "Макс. шир.",
             "min-lon": "Мин. долг.",
             "max-lon": "Макс. долг.",
-        },
-        "tab-great-circle-distance": {
-            "label": "Выборка по длине большого круга",
+            "title-great-circle-distance": "Выборка по длине большого круга",
             "distance": "Дистанция (км)",
             "center-point-lat": "Шир. точки",
             "center-point-lon": "Долг. точки",
+        },
+        "tab-add-unique-point":{
+            "label": "Добавления точек",
+            "name-point": "Имя",
+            "point-marker": "Маркер",
+            "point-lat": "Шир. точки",
+            "point-lon": "Долг. точки",
         },
         "download_window": {
             "label": "Дата",
@@ -70,6 +78,8 @@ languages = {
             "clear-all": "Сlear all",
             "apply-selection-by-region": "Apply",
             "clear-selection-by-region": "Clear selection",
+            "delete-all-points": "Delete all",
+            "add-point": "Add",
             "check-file-size": "Check file size",
         },
         "graph-site-map": {
@@ -89,18 +99,24 @@ languages = {
             },
             "selection-satellites": "Satellite",
         },
-        "tab-lat-lon": {
-            "label": "Sampling by lat. and lon.",
+        "tab-sampling-region": {
+            "label": "Sampling by region",
+            "title-lat-lon": "Sampling by lat. and lon.",
             "min-lat": "Min. lat.",
             "max-lat": "Max. lat.",
             "min-lon": "Min. lon.",
             "max-lon": "Max. lon.",
-        },
-        "tab-great-circle-distance": {
-            "label": "Sampling by great circle distance",
+            "title-great-circle-distance": "Sampling by great circle distance",
             "distance": "Distance (km)",
             "center-point-lat": "Lat. point",
             "center-point-lon": "Lon. point",
+        },
+        "tab-add-points":{
+            "label": "Adding points",
+            "name-point": "Name",
+            "point-marker": "Marker",
+            "point-lat": "Lat. point",
+            "point-lon": "Lon. point",
         },
         "download_window": {
             "label": "Date",

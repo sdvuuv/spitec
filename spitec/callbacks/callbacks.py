@@ -617,10 +617,7 @@ def register_callbacks(app: dash.Dash) -> None:
             Output("graph-site-map", "figure", allow_duplicate=True),
             Output("region-site-names-store", "data", allow_duplicate=True),
         ],
-        [
-            Input("clear-selection-by-region1", "n_clicks"),
-            Input("clear-selection-by-region2", "n_clicks"),
-        ],
+        Input("clear-selection-by-region", "n_clicks"),
         [
             State("projection-radio", "value"),
             State("hide-show-site", "value"),
@@ -639,7 +636,6 @@ def register_callbacks(app: dash.Dash) -> None:
     )
     def clear_selection_by_region(
         n1: int,
-        n2: int,
         projection_value: ProjectionType,
         show_names_site: bool,
         site_coords: dict[Site, dict[Coordinate, float]],

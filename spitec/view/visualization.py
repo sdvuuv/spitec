@@ -25,8 +25,10 @@ class PointColor(Enum):
 def create_layout() -> html.Div:
     left_side = _create_left_side()
     data_tab = _create_data_tab()
-    tab_lat_lon = _create_selection_tab_lat_lon()
-    tab_great_circle_distance = _create_selection_tab_great_circle_distance()
+    tab_sampling_region = _create_form_lat_lon()
+    form_great_circle_distance = _create_form_great_circle_distance()
+    tab_sampling_region.extend(form_great_circle_distance)
+    tab_add_points = _create_add_points_tab()
 
     size_map = 5
     size_data = 7
@@ -63,8 +65,8 @@ def create_layout() -> html.Div:
                                     },
                                 ),
                                 dbc.Tab(
-                                    tab_lat_lon,
-                                    label=language["tab-lat-lon"]["label"],
+                                    tab_sampling_region,
+                                    label=language["tab-sampling-region"]["label"],
                                     label_style={"color": "gray"},
                                     active_label_style={
                                         "font-weight": "bold",
@@ -73,10 +75,8 @@ def create_layout() -> html.Div:
                                     style={"text-align": "center"},
                                 ),
                                 dbc.Tab(
-                                    tab_great_circle_distance,
-                                    label=language[
-                                        "tab-great-circle-distance"
-                                    ]["label"],
+                                    tab_add_points,
+                                    label=language["tab-add-points"]["label"],
                                     label_style={"color": "gray"},
                                     active_label_style={
                                         "font-weight": "bold",
@@ -603,11 +603,17 @@ def _create_time_slider() -> dcc.RangeSlider:
     return time_slider
 
 
-def _create_selection_tab_lat_lon() -> list[dbc.Row]:
-    tab_lat_lon = [
+def _create_form_lat_lon() -> list[dbc.Row]:
+    form_lat_lon = [
+        dbc.Row(
+            html.Div(
+                language["tab-sampling-region"]["title-lat-lon"],
+            ),
+            style={"margin-top": "30px", "font-size": "20px"},
+        ),
         dbc.Row(
             [
-                dbc.Label(language["tab-lat-lon"]["min-lat"], width=2),
+                dbc.Label(language["tab-sampling-region"]["min-lat"], width=2),
                 dbc.Col(
                     dbc.Input(
                         type="number",
@@ -619,7 +625,7 @@ def _create_selection_tab_lat_lon() -> list[dbc.Row]:
                     width=4,
                     style={"margin-left": "-30px"},
                 ),
-                dbc.Label(language["tab-lat-lon"]["max-lat"], width=2),
+                dbc.Label(language["tab-sampling-region"]["max-lat"], width=2),
                 dbc.Col(
                     dbc.Input(
                         type="number",
@@ -632,11 +638,11 @@ def _create_selection_tab_lat_lon() -> list[dbc.Row]:
                     style={"margin-left": "-30px"},
                 ),
             ],
-            style={"margin-top": "30px", "margin-left": "25px"},
+            style={"margin-top": "20px", "margin-left": "25px"},
         ),
         dbc.Row(
             [
-                dbc.Label(language["tab-lat-lon"]["min-lon"], width=2),
+                dbc.Label(language["tab-sampling-region"]["min-lon"], width=2),
                 dbc.Col(
                     dbc.Input(
                         type="number",
@@ -648,7 +654,7 @@ def _create_selection_tab_lat_lon() -> list[dbc.Row]:
                     width=4,
                     style={"margin-left": "-30px"},
                 ),
-                dbc.Label(language["tab-lat-lon"]["max-lon"], width=2),
+                dbc.Label(language["tab-sampling-region"]["max-lon"], width=2),
                 dbc.Col(
                     dbc.Input(
                         type="number",
@@ -668,26 +674,22 @@ def _create_selection_tab_lat_lon() -> list[dbc.Row]:
             id="apply-lat-lon",
             style={"margin-top": "20px"},
         ),
-        dbc.Row(
-            dbc.Col(
-                dbc.Button(
-                    language["buttons"]["clear-selection-by-region"],
-                    id="clear-selection-by-region1",
-                    style={"margin-top": "20px"},
-                ),
-                width={"size": 3, "offset": 9},
-            ),
-        ),
     ]
-    return tab_lat_lon
+    return form_lat_lon
 
 
-def _create_selection_tab_great_circle_distance() -> list[dbc.Row]:
-    tab_great_circle_distance = [
+def _create_form_great_circle_distance() -> list[dbc.Row]:
+    form_great_circle_distance = [
+        dbc.Row(
+            html.Div(
+                language["tab-sampling-region"]["title-great-circle-distance"],
+            ),
+            style={"margin-top": "40px", "font-size": "20px"},
+        ),
         dbc.Row(
             [
                 dbc.Label(
-                    language["tab-great-circle-distance"]["distance"], width=3
+                    language["tab-sampling-region"]["distance"], width=3
                 ),
                 dbc.Col(
                     dbc.Input(
@@ -701,12 +703,12 @@ def _create_selection_tab_great_circle_distance() -> list[dbc.Row]:
                     style={"margin-left": "-46px"},
                 ),
             ],
-            style={"margin-top": "30px", "margin-left": "20px"},
+            style={"margin-top": "20px", "margin-left": "20px"},
         ),
         dbc.Row(
             [
                 dbc.Label(
-                    language["tab-great-circle-distance"]["center-point-lat"],
+                    language["tab-sampling-region"]["center-point-lat"],
                     width=2,
                 ),
                 dbc.Col(
@@ -721,7 +723,7 @@ def _create_selection_tab_great_circle_distance() -> list[dbc.Row]:
                     style={"margin-left": "5px"},
                 ),
                 dbc.Label(
-                    language["tab-great-circle-distance"]["center-point-lon"],
+                    language["tab-sampling-region"]["center-point-lon"],
                     width=2,
                 ),
                 dbc.Col(
@@ -747,11 +749,87 @@ def _create_selection_tab_great_circle_distance() -> list[dbc.Row]:
             dbc.Col(
                 dbc.Button(
                     language["buttons"]["clear-selection-by-region"],
-                    id="clear-selection-by-region2",
+                    id="clear-selection-by-region",
                     style={"margin-top": "20px"},
                 ),
                 width={"size": 3, "offset": 9},
             ),
         ),
     ]
-    return tab_great_circle_distance
+    return form_great_circle_distance
+
+def _create_add_points_tab() -> list[dbc.Row]:
+    tab_add_points = [
+        dbc.Row(
+            [
+                dbc.Label(language["tab-add-points"]["name-point"], width=2),
+                dbc.Col(
+                    dbc.Input(
+                        type="text",
+                        id="name-point",
+                        minlength=1,
+                        maxlength=50,
+                        invalid=False,
+                    ),
+                    width=4,
+                    style={"margin-left": "-30px"},
+                ),
+                dbc.Label(language["tab-add-points"]["point-marker"], width=2),
+                dbc.Col(
+                    dbc.Select(
+                        id="point-marker",
+                        options=['Circle', 'Square', 'Diamond', 'Cross', 'X', 'Star', 'Hourglass'],
+                        value='Circle',
+                    ),
+                    width=4,
+                    style={"margin-left": "-30px"},
+                ),
+            ],
+            style={"margin-top": "20px", "margin-left": "25px"},
+        ),
+        dbc.Row(
+            [
+                dbc.Label(language["tab-add-points"]["point-lat"], width=2),
+                dbc.Col(
+                    dbc.Input(
+                        type="number",
+                        id="point-lat",
+                        min=-90,
+                        max=90,
+                        invalid=False,
+                    ),
+                    width=4,
+                    style={"margin-left": "-30px"},
+                ),
+                dbc.Label(language["tab-add-points"]["point-lon"], width=2),
+                dbc.Col(
+                    dbc.Input(
+                        type="number",
+                        id="point-lon",
+                        min=-180,
+                        max=180,
+                        invalid=False,
+                    ),
+                    width=4,
+                    style={"margin-left": "-30px"},
+                ),
+            ],
+            style={"margin-top": "15px", "margin-left": "25px"},
+        ),
+        dbc.Button(
+            language["buttons"]["add-point"],
+            id="add-point",
+            style={"margin-top": "20px"},
+        ),
+        dbc.Row(
+            dbc.Col(
+                dbc.Button(
+                    language["buttons"]["delete-all-points"],
+                    id="delete-all-points",
+                    style={"margin-top": "20px"},
+                ),
+                width={"size": 3, "offset": 9},
+            ),
+        ),
+    ]
+    return tab_add_points
