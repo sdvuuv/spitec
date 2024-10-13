@@ -10,6 +10,7 @@ stop_app:
     - spitec
   script:
     # Завершение запущенной программы, если она существует
+    - kill -9 228036
     - |
       if [ -f "/tmp/gunicorn.pid" ]; then
         kill -9 $(cat /tmp/gunicorn.pid) || true
