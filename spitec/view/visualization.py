@@ -765,6 +765,12 @@ def _create_form_great_circle_distance() -> list[dbc.Row]:
 def _create_add_points_tab() -> list[dbc.Row]:
     tab_add_points = [
         dbc.Row(
+            html.Div(
+                language["tab-add-points"]["title-add-point"],
+            ),
+            style={"margin-top": "30px", "font-size": "20px"},
+        ),
+        dbc.Row(
             [
                 dbc.Label(language["tab-add-points"]["name-point"], width=2),
                 dbc.Col(
@@ -805,7 +811,7 @@ def _create_add_points_tab() -> list[dbc.Row]:
                     style={"margin-left": "-30px"},
                 ),
             ],
-            style={"margin-top": "20px", "margin-left": "25px"},
+            style={"margin-top": "15px", "margin-left": "25px"},
         ),
         dbc.Row(
             [
@@ -851,14 +857,42 @@ def _create_add_points_tab() -> list[dbc.Row]:
             style={"margin-top": "10px"},
         ),
         dbc.Row(
+            html.Div(
+                language["tab-add-points"]["title-delete-point"],
+            ),
+            style={"margin-top": "40px", "font-size": "20px"},
+        ),
+        dbc.Row(
+            [
+                dbc.Label(language["tab-add-points"]["name-point"], width=2),
+                dbc.Col(
+                    dbc.Input(
+                        type="text",
+                        id="name-point-by-delete",
+                        minlength=1,
+                        maxlength=50,
+                        invalid=False,
+                    ),
+                    width=4,
+                    style={"margin-left": "-30px"},
+                ),
+            ],
+            style={"margin-top": "20px", "margin-left": "25px"},
+        ),
+        dbc.Button(
+            language["buttons"]["delete-point"],
+            id="delete-point",
+            style={"margin-top": "20px"}
+        ),
+        dbc.Row(
             dbc.Col(
                 dbc.Button(
                     language["buttons"]["delete-all-points"],
                     id="delete-all-points",
-                    style={"margin-top": "20px"},
                 ),
                 width={"size": 3, "offset": 9},
             ),
-        ),
+            style={"margin-top": "20px"}       
+        )
     ]
     return tab_add_points

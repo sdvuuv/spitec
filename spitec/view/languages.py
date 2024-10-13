@@ -8,6 +8,7 @@ languages = {
             "apply-selection-by-region": "Применить",
             "clear-selection-by-region": "Очистить выборку",
             "delete-all-points": "Удалить всё",
+            "delete-point": "Удалить",
             "add-point": "Добавить",
             "check-file-size": "Проверить размер файла",
         },
@@ -48,6 +49,8 @@ languages = {
             "point-lon": "Долг. точки",
             "point-color": "Цвет",
             "error": "Точка с данным именем уже существует",
+            "title-add-point": "Добавление точки",
+            "title-delete-point": "Удаление точки",
         },
         "download_window": {
             "label": "Дата",
@@ -81,6 +84,7 @@ languages = {
             "apply-selection-by-region": "Apply",
             "clear-selection-by-region": "Clear selection",
             "delete-all-points": "Delete all",
+            "delete-point": "Delete",
             "add-point": "Add",
             "check-file-size": "Check file size",
         },
@@ -121,6 +125,8 @@ languages = {
             "point-lon": "Lon. point",
             "point-color": "Color",
             "error": "A point with the given name already exists",
+            "title-add-point": "Adding a point",
+            "title-delete-point": "Delete a point",
         },
         "download_window": {
             "label": "Date",

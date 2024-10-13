@@ -900,6 +900,84 @@ def register_callbacks(app: dash.Dash) -> None:
             sip_tag_time,
         )
         return site_map, None
+    
+    @app.callback(
+        [
+            Output("graph-site-map", "figure", allow_duplicate=True),
+            Output("new-points-store", "data", allow_duplicate=True),
+        ],
+        Input("delete-point", "n_clicks"),
+        [
+            State("name-point-by-delete", "value"),
+            State("projection-radio", "value"),
+            State("hide-show-site", "value"),
+            State("site-coords-store", "data"),
+            State("site-data-store", "data"),
+            State("relayout-map-store", "data"),
+            State("scale-map-store", "data"),
+            State("graph-site-data", "figure"),
+            State("local-file-store", "data"),
+            State("selection-satellites", "value"),
+            State("time-slider", "value"),
+            State("input-hm", "value"),
+            State("sip-tag-time-store", "data"),
+            State("region-site-names-store", "data"),
+            State("new-points-store", "data"),
+        ],
+        prevent_initial_call=True,
+    )
+    def delete_point(
+        n1: int,
+        name_point: str,
+        projection_value: ProjectionType,
+        show_names_site: bool,
+        site_coords: dict[Site, dict[Coordinate, float]],
+        site_data_store: dict[str, int],
+        relayout_data: dict[str, float],
+        scale_map_store: float,
+        site_data: dict,
+        local_file: str,
+        sat: Sat,
+        time_value: list[int],
+        input_hm: float,
+        sip_tag_time: str,
+        region_site_names: dict[str, int],
+        new_points: dict[str, dict[str, str | float]],
+    ) -> list[go.Figure | None]:
+        if name_point in new_points.keys():
+            del new_points[name_point]
+        if len(new_points) == 0:
+            new_points == None
+            
+        site_map = create_map_with_points(
+            site_coords,
+            projection_value,
+            show_names_site,
+            region_site_names,
+            site_data_store,
+            relayout_data,
+            scale_map_store,
+            new_points,
+        )
+
+        colors = {}
+        for data in site_data["data"]:
+            if data["name"] is None:
+                continue
+            colors[data["name"].lower()] = data["marker"]["color"]
+
+        site_map = create_map_with_trajectories(
+            site_map,
+            local_file,
+            site_data_store,
+            site_coords,
+            sat, 
+            colors,
+            time_value,
+            input_hm,
+            sip_tag_time,
+        )
+        return site_map, new_points
 
     @app.callback(
         [
