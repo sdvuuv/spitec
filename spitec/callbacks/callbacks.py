@@ -60,6 +60,8 @@ def register_callbacks(app: dash.Dash) -> None:
         
         colors = {}
         for data in site_data["data"]:
+            if data["name"] is None:
+                continue
             colors[data["name"].lower()] = data["marker"]["color"]
         
         site_map = create_map_with_trajectories(
@@ -164,6 +166,8 @@ def register_callbacks(app: dash.Dash) -> None:
 
         colors = {}
         for data in site_data.data:
+            if data["name"] is None:
+                continue
             colors[data.name.lower()] = data.marker.color
         
         site_map = create_map_with_trajectories(
@@ -244,6 +248,8 @@ def register_callbacks(app: dash.Dash) -> None:
 
         colors = {}
         for data in site_data["data"]:
+            if data["name"] is None:
+                continue
             colors[data["name"].lower()] = data["marker"]["color"]
 
         site_map = create_map_with_points(
@@ -382,6 +388,8 @@ def register_callbacks(app: dash.Dash) -> None:
 
         colors = {}
         for data in site_data["data"]:
+            if data["name"] is None:
+                continue
             colors[data["name"].lower()] = data["marker"]["color"]
         
         site_map = create_map_with_trajectories(
@@ -489,6 +497,8 @@ def register_callbacks(app: dash.Dash) -> None:
 
         colors = {}
         for data in site_data["data"]:
+            if data["name"] is None:
+                continue
             colors[data["name"].lower()] = data["marker"]["color"]
         
         return_value_list[0] = create_map_with_trajectories(
@@ -597,6 +607,8 @@ def register_callbacks(app: dash.Dash) -> None:
 
         colors = {}
         for data in site_data["data"]:
+            if data["name"] is None:
+                continue
             colors[data["name"].lower()] = data["marker"]["color"]
 
         return_value_list[0] = create_map_with_trajectories(
@@ -661,6 +673,8 @@ def register_callbacks(app: dash.Dash) -> None:
 
         colors = {}
         for data in site_data["data"]:
+            if data["name"] is None:
+                continue
             colors[data["name"].lower()] = data["marker"]["color"]
 
         site_map = create_map_with_trajectories(
@@ -675,6 +689,125 @@ def register_callbacks(app: dash.Dash) -> None:
             sip_tag_time,
         )
         return site_map, None
+    
+    @app.callback(
+        [
+            Output("graph-site-map", "figure", allow_duplicate=True),
+            Output("name-point", "invalid"),
+            Output("point-lat", "invalid"),
+            Output("point-lon", "invalid"),
+            Output("new-points-store", "data", allow_duplicate=True),
+            Output("add-points-error", "style"),
+        ],
+        [Input("add-point", "n_clicks")],
+        [
+            State("name-point", "value"),
+            State("point-marker", "value"),
+            State("point-color", "value"),
+            State("point-lat", "value"),
+            State("point-lon", "value"),
+            State("new-points-store", "data"),
+            State("region-site-names-store", "data"),
+            State("projection-radio", "value"),
+            State("hide-show-site", "value"),
+            State("site-coords-store", "data"),
+            State("site-data-store", "data"),
+            State("relayout-map-store", "data"),
+            State("scale-map-store", "data"),
+            State("graph-site-data", "figure"),
+            State("local-file-store", "data"),
+            State("selection-satellites", "value"),
+            State("time-slider", "value"),
+            State("input-hm", "value"),
+            State("sip-tag-time-store", "data"),
+        ],
+        prevent_initial_call=True,
+    )
+    def add_new_point(
+        n: int,
+        point_name: str,
+        point_marker: str,
+        point_color: str,
+        point_lat: int,
+        point_lon: int,
+        new_points: dict[str, dict[str, str | float]],
+        region_site_names: dict[str, int],
+        projection_value: ProjectionType,
+        show_names_site: bool,
+        site_coords: dict[Site, dict[Coordinate, float]],
+        site_data_store: dict[str, int],
+        relayout_data: dict[str, float],
+        scale_map_store: float,
+        site_data: dict,
+        local_file: str,
+        sat: Sat,
+        time_value: list[int],
+        input_hm: float,
+        sip_tag_time: str,
+    ) -> list[go.Figure | bool | dict[str, dict[str, str | float]], dict[str, str]]:
+        print(point_name, point_marker, point_color, point_lat, point_lon)
+        print(new_points)
+        return_value_list = [None, False, False, False, new_points]
+        points = new_points
+        if points is None:
+                points = {}
+
+        style = {"visibility": "hidden"}
+
+        check_region_value(point_name, 1, return_value_list)
+        check_region_value(point_lat, 2, return_value_list)
+        check_region_value(point_lon, 3, return_value_list)
+
+        if True in return_value_list or site_coords is None:
+            pass
+        elif point_name in points.keys(): 
+            style = {
+                    "margin-top": "10px",
+                    "fontSize": "16px",
+                    "color": "red",
+                }
+        else:
+            points[point_name] = {
+                "marker": point_marker,
+                "color": point_color,
+                "lat": point_lat,
+                "lon": point_lon,
+            }
+
+        if len(points) == 0:
+            points = None
+
+        site_map = create_map_with_points(
+            site_coords,
+            projection_value,
+            show_names_site,
+            region_site_names,
+            site_data_store,
+            relayout_data,
+            scale_map_store,
+        )
+
+        colors = {}
+        for data in site_data["data"]:
+            if data["name"] is None:
+                continue
+            colors[data["name"].lower()] = data["marker"]["color"]
+
+        return_value_list[0] = create_map_with_trajectories(
+            site_map,
+            local_file,
+            site_data_store,
+            site_coords,
+            sat, 
+            colors,
+            time_value,
+            input_hm,
+            sip_tag_time,
+        )
+
+        return_value_list[-1] = points
+        return_value_list.append(style)
+        return return_value_list
 
     @app.callback(
         [
@@ -953,6 +1086,8 @@ def register_callbacks(app: dash.Dash) -> None:
     ) -> go.Figure:
         colors = {}
         for data in site_data["data"]:
+            if data["name"] is None:
+                continue
             colors[data["name"].lower()] = data["marker"]["color"]
 
         site_map = create_map_with_points(
@@ -1033,6 +1168,8 @@ def register_callbacks(app: dash.Dash) -> None:
 
         colors = {}
         for data in site_data.data:
+            if data["name"] is None:
+                continue
             colors[data.name.lower()] = data.marker.color
 
         site_map = create_map_with_points(
@@ -1107,6 +1244,8 @@ def register_callbacks(app: dash.Dash) -> None:
         )
         colors = {}
         for data in site_data["data"]:
+            if data["name"] is None:
+                continue
             colors[data["name"].lower()] = data["marker"]["color"]
 
         site_map = create_map_with_points(
@@ -1229,6 +1368,8 @@ def register_callbacks(app: dash.Dash) -> None:
 
         colors = {}
         for data in site_data["data"]:
+            if data["name"] is None:
+                continue
             colors[data["name"].lower()] = data["marker"]["color"]
 
         site_map = create_map_with_trajectories(

@@ -43,6 +43,7 @@ def create_layout() -> html.Div:
             dcc.Store(id="scale-map-store", storage_type="session", data=1),
             dcc.Store(id="relayout-map-store", storage_type="session"),
             dcc.Store(id="sip-tag-time-store", storage_type="session"),
+            dcc.Store(id="new-points-store", storage_type="session"),
             dcc.Location(id="url", refresh=False),
             dbc.Row(
                 [
@@ -773,13 +774,29 @@ def _create_add_points_tab() -> list[dbc.Row]:
                     ),
                     width=4,
                     style={"margin-left": "-30px"},
-                ),
+                )
+            ],
+            style={"margin-top": "20px", "margin-left": "25px"},
+        ),
+        dbc.Row(
+            [
                 dbc.Label(language["tab-add-points"]["point-marker"], width=2),
                 dbc.Col(
                     dbc.Select(
                         id="point-marker",
                         options=['Circle', 'Square', 'Diamond', 'Cross', 'X', 'Star', 'Hourglass'],
                         value='Circle',
+                    ),
+                    width=4,
+                    style={"margin-left": "-30px"},
+                ),
+                dbc.Label(language["tab-add-points"]["point-color"], width=2),
+                dbc.Col(
+                    dbc.Input(
+                        type="color",
+                        id="point-color",
+                        value="#43df4e", 
+                        style={"height": "38px"},
                     ),
                     width=4,
                     style={"margin-left": "-30px"},
@@ -816,10 +833,19 @@ def _create_add_points_tab() -> list[dbc.Row]:
             ],
             style={"margin-top": "15px", "margin-left": "25px"},
         ),
+        dbc.Row(
+            html.Div(
+                language["tab-add-points"]["error"],
+                id="add-points-error",
+                style={
+                    "visibility": "hidden"
+                },
+            ),
+        ),
         dbc.Button(
             language["buttons"]["add-point"],
             id="add-point",
-            style={"margin-top": "20px"},
+            style={"margin-top": "10px"},
         ),
         dbc.Row(
             dbc.Col(

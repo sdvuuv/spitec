@@ -40,12 +40,14 @@ languages = {
             "center-point-lat": "Шир. точки",
             "center-point-lon": "Долг. точки",
         },
-        "tab-add-unique-point":{
+        "tab-add-points":{
             "label": "Добавления точек",
             "name-point": "Имя",
             "point-marker": "Маркер",
             "point-lat": "Шир. точки",
             "point-lon": "Долг. точки",
+            "point-color": "Цвет",
+            "error": "Точка с данным именем уже существует",
         },
         "download_window": {
             "label": "Дата",
@@ -117,6 +119,8 @@ languages = {
             "point-marker": "Marker",
             "point-lat": "Lat. point",
             "point-lon": "Lon. point",
+            "point-color": "Color",
+            "error": "A point with the given name already exists",
         },
         "download_window": {
             "label": "Date",
