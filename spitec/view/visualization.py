@@ -370,12 +370,15 @@ def create_site_map_with_trajectories() -> go.Scattergeo:
 
 def create_site_map_with_tag(
         size: int = 5, 
-        symbol: str = 'diamond'  # Маркер ромб
+        symbol: str = 'diamond',  # Маркер ромб
+        name: str = None
     ) -> go.Scattergeo:
     site_map_end_trajs = go.Scattergeo(
         mode='markers',
         marker=dict(size=size, symbol=symbol), 
-        hovertemplate='%{lat}, %{lon}<extra></extra>'
+        meta=name,
+        hovertemplate='%{meta}<br>%{lat}, %{lon}<extra></extra>' if name is not None \
+            else '%{lat}, %{lon}<extra></extra>' 
     )
     return site_map_end_trajs
 

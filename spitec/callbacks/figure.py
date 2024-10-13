@@ -17,6 +17,7 @@ def create_map_with_points(
     site_data_store: dict[str, int],
     relayout_data: dict[str, float],
     scale_map_store: float,
+    new_points: dict[str, dict[str, str | float]],
 ) -> go.Figure:
     site_map_points = create_site_map_with_points()
     site_map = create_fig_for_map(site_map_points)
@@ -40,12 +41,30 @@ def create_map_with_points(
 
         # Смена цвета точек
         _change_points_on_map(region_site_names, site_data_store, site_map)
+
+        # Добавление точек пользователя
+        if new_points is not None:
+            _add_new_points(site_map, new_points)
     # Смена маштаба
     if relayout_data is not None:
         _change_scale_map(
             site_map, relayout_data, scale_map_store, projection_value
         )
     return site_map
+
+def _add_new_points(
+        site_map: go.Figure,
+        new_points: dict[str, dict[str, str | float]],
+) -> None:
+    for name, value in new_points.items():
+        # Создаем объект для отрисовки точек пользователя
+        site_map_point = create_site_map_with_tag(10, value["marker"], name) 
+        site_map_point.lat = [value["lat"]]
+        site_map_point.lon = [value["lon"]]
+        site_map_point.marker.color = value["color"]
+
+        # Добавляем на карту
+        site_map.add_trace(site_map_point)
 
 def configure_show_site_names(
         show_names_site: bool,
