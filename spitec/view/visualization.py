@@ -29,6 +29,7 @@ def create_layout() -> html.Div:
     form_great_circle_distance = _create_form_great_circle_distance()
     tab_sampling_region.extend(form_great_circle_distance)
     tab_add_points = _create_add_points_tab()
+    tab_add_trajectories = _create_add_trajectory_tab()
 
     size_map = 5
     size_data = 7
@@ -44,6 +45,7 @@ def create_layout() -> html.Div:
             dcc.Store(id="relayout-map-store", storage_type="session"),
             dcc.Store(id="sip-tag-time-store", storage_type="session"),
             dcc.Store(id="new-points-store", storage_type="session"),
+            dcc.Store(id="new-trajectory-store", storage_type="session"),
             dcc.Location(id="url", refresh=False),
             dbc.Row(
                 [
@@ -78,6 +80,16 @@ def create_layout() -> html.Div:
                                 dbc.Tab(
                                     tab_add_points,
                                     label=language["tab-add-points"]["label"],
+                                    label_style={"color": "gray"},
+                                    active_label_style={
+                                        "font-weight": "bold",
+                                        "color": "#2C3E50",
+                                    },
+                                    style={"text-align": "center"},
+                                ),
+                                dbc.Tab(
+                                    tab_add_trajectories,
+                                    label=language["tab-add-trajectories"]["label"],
                                     label_style={"color": "gray"},
                                     active_label_style={
                                         "font-weight": "bold",
@@ -852,7 +864,7 @@ def _create_add_points_tab() -> list[dbc.Row]:
             ),
         ),
         dbc.Button(
-            language["buttons"]["add-point"],
+            language["buttons"]["add-element"],
             id="add-point",
             style={"margin-top": "10px"},
         ),
@@ -880,14 +892,14 @@ def _create_add_points_tab() -> list[dbc.Row]:
             style={"margin-top": "20px", "margin-left": "25px"},
         ),
         dbc.Button(
-            language["buttons"]["delete-point"],
+            language["buttons"]["delete-element"],
             id="delete-point",
             style={"margin-top": "20px"}
         ),
         dbc.Row(
             dbc.Col(
                 dbc.Button(
-                    language["buttons"]["delete-all-points"],
+                    language["buttons"]["delete-all-elements"],
                     id="delete-all-points",
                 ),
                 width={"size": 3, "offset": 9},
@@ -896,3 +908,125 @@ def _create_add_points_tab() -> list[dbc.Row]:
         )
     ]
     return tab_add_points
+
+def _create_add_trajectory_tab() -> list[dbc.Row]:
+    tab_add_trajectories = [
+        dbc.Row(
+            html.Div(
+                language["tab-add-trajectories"]["title-add-trajectory"],
+            ),
+            style={"margin-top": "30px", "font-size": "20px"},
+        ),
+        dbc.Row(
+            [
+                dbc.Label(language["tab-add-trajectories"]["name-trajectory"], width=2),
+                dbc.Col(
+                    dbc.Input(
+                        type="text",
+                        id="name-trajectory",
+                        minlength=1,
+                        maxlength=50,
+                        invalid=False,
+                    ),
+                    width=4,
+                    style={"margin-left": "-30px"},
+                )
+            ],
+            style={"margin-top": "20px", "margin-left": "25px"},
+        ),
+        dbc.Row(
+            [
+                dbc.Label(language["tab-add-trajectories"]["trajectory-file"], width=2),
+                dbc.Col(
+                    dcc.Upload(
+                        id='trajectory-file',
+                        children=html.Div(
+                            language["tab-add-trajectories"]["children"],
+                            id="upload-text",
+                        ),
+                        style={
+                            "width": "100%",
+                            "height": "38px",
+                            "border": "1px solid #DEE2E6",
+                            "border-radius": "7px",
+                            "text-align": "center",
+                            "line-height": "38px",
+                            "cursor": "pointer"
+                        },
+                        style_active={
+                            "border": "1px solid #DEE2E6",
+                            "border-radius": "7px",
+                        },
+                        multiple=False
+                    ),
+                    width=4,
+                    style={"margin-left": "-30px"},
+                ),
+                dbc.Label(language["tab-add-trajectories"]["trajectory-color"], width=2),
+                dbc.Col(
+                    dbc.Input(
+                        type="color",
+                        id="trajectory-color",
+                        value="#43df4e", 
+                        style={"height": "38px"},
+                    ),
+                    width=4,
+                    style={"margin-left": "-30px"},
+                ),
+            ],
+            style={"margin-top": "15px", "margin-left": "25px"},
+        ),
+        dbc.Row(
+            html.Div(
+                language["tab-add-trajectories"]["error-name"],
+                id="add-trajectory-error",
+                style={
+                    "visibility": "hidden"
+                },
+            ),
+        ),
+        dbc.Button(
+            language["buttons"]["add-element"],
+            id="add-trajectory",
+            style={"margin-top": "10px"},
+        ),
+        dbc.Row(
+            html.Div(
+                language["tab-add-trajectories"]["title-delete-trajectory"],
+            ),
+            style={"margin-top": "40px", "font-size": "20px"},
+        ),
+        dbc.Row(
+            [
+                dbc.Label(language["tab-add-trajectories"]["name-trajectory"], width=2),
+                dbc.Col(
+                    dbc.Input(
+                        type="text",
+                        id="name-trajectory-by-delete",
+                        minlength=1,
+                        maxlength=50,
+                        invalid=False,
+                    ),
+                    width=4,
+                    style={"margin-left": "-30px"},
+                ),
+            ],
+            style={"margin-top": "20px", "margin-left": "25px"},
+        ),
+        dbc.Button(
+            language["buttons"]["delete-element"],
+            id="delete-trajectory",
+            style={"margin-top": "20px"}
+        ),
+        dbc.Row(
+            dbc.Col(
+                dbc.Button(
+                    language["buttons"]["delete-all-elements"],
+                    id="delete-all-trajectories",
+                ),
+                width={"size": 3, "offset": 9},
+            ),
+            style={"margin-top": "20px"}       
+        )
+    ]
+    return tab_add_trajectories

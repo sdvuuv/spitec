@@ -978,6 +978,39 @@ def register_callbacks(app: dash.Dash) -> None:
             sip_tag_time,
         )
         return site_map, new_points
+    
+    @app.callback(
+        [
+            Output('upload-text', 'children', allow_duplicate=True),
+            Output("add-trajectory-error", "children", allow_duplicate=True),
+            Output("add-trajectory-error", "style", allow_duplicate=True),
+            
+        ],
+        Input('trajectory-file', 'filename'),
+        Input('trajectory-file', 'contents'),
+        prevent_initial_call=True,
+    )
+    def update_upload_text(filename: str, contents):
+        error_text = ""
+        error_style = {"visibility": "hidden"}
+
+        upload_text = language["tab-add-trajectories"]["children"]
+
+        if filename is None or not filename.endswith('.txt'):
+            error_style = {
+                "margin-top": "10px",
+                "fontSize": "16px",
+                "color": "red",
+            }
+            error_text = language["tab-add-trajectories"]["error-file"]
+
+        if filename is not None:
+            if len(filename) > 20:
+                upload_text = filename[:20] + "..."
+            else:
+                upload_text = filename
+        
+        return upload_text, error_text, error_style
 
     @app.callback(
         [
