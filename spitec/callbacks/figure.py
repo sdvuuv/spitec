@@ -7,6 +7,7 @@ from datetime import datetime, timezone
 import numpy as np
 import plotly.express as px
 from pathlib import Path
+import pandas as pd
 
 
 def create_map_with_points(
@@ -221,6 +222,7 @@ def create_map_with_trajectories(
         time_value: list[int],
         hm: float,
         sip_tag_time: str,
+        new_trajectory: dict[str, dict[str, float | str]]
 ) -> go.Figure:
     
     if sat is None or local_file is None or \
@@ -230,6 +232,10 @@ def create_map_with_trajectories(
         return site_map
     
     local_file_path = Path(local_file)
+
+    new_trajectory_objs, new_trajectory_colors = _get_objs_new_trajectories(
+        new_trajectory
+    )
     
     # Создаем список с объектом Trajectorie
     trajectory_objs: list[Trajectorie] = _get_objs_trajectories(
@@ -240,9 +246,19 @@ def create_map_with_trajectories(
         hm,
     )
     limit_start, limit_end = _create_limit_xaxis(time_value, local_file_path)
-    for traj in trajectory_objs:
+
+    new_trajectory_objs.extend(trajectory_objs)
+    for i, traj in enumerate(new_trajectory_objs):
         if not traj.sat_exist: # данных по спутнику нет
             continue
+        
+        # Определяем цвет траектории
+        if traj.site_name in data_colors.keys(): 
+            curtent_color = data_colors[traj.site_name]
+        elif i < len(new_trajectory_objs) - len(trajectory_objs):
+            curtent_color = new_trajectory_colors[i]
+        else:
+            curtent_color = "black"
         
         # Ищем ближайщие индексы времени
         traj.idx_start_point, _ = _find_time(traj.times, limit_start)
@@ -254,30 +270,49 @@ def create_map_with_trajectories(
 
         if traj.idx_start_point >= traj.idx_end_point or \
             traj.idx_start_point == -1 or \
-            traj.idx_end_point == -1: # если не нашли, или нашли неверно
+            traj.idx_end_point == -1:
+            # если не нашли, или нашли неверно
             continue
 
         # создаем объекты для отрисовки траектории
-        site_map_trajs, site_map_end_trajs = _create_trajectory(data_colors[traj.site_name], traj)
+        site_map_trajs, site_map_end_trajs = _create_trajectory(curtent_color, traj, traj.site_name)
         site_map.add_traces([site_map_trajs, site_map_end_trajs])
 
     if sip_tag_time is not None and len(sip_tag_time) == 8:
         site_map = _add_sip_tag(site_map, local_file_path, sip_tag_time, trajectory_objs, data_colors)
     return site_map
 
+def _get_objs_new_trajectories(
+        new_trajectory: dict[str, dict[str, float | str]]
+    ) -> list[list[Trajectorie], list[str]]:
+    new_trajectory_objs = []
+    new_trajectory_colors = []
+    if new_trajectory is not None:
+        for name, data in new_trajectory.items():
+            trajectory = Trajectorie(name, None, None, None)
+            datetime_array = pd.to_datetime(data["times"])
+            trajectory.times = np.array(datetime_array)
+            trajectory.traj_lat = np.array(data["traj_lat"], dtype=object)
+            trajectory.traj_lon = np.array(data["traj_lon"], dtype=object)
+            trajectory.traj_el = np.array(data["traj_el"], dtype=object)
+            new_trajectory_colors.append(data["color"])
+            new_trajectory_objs.append(trajectory)
+    return new_trajectory_objs, new_trajectory_colors
+
 def _create_trajectory(
         current_color: str,
         traj: Trajectorie,
+        name: str = None
     ) -> list[go.Scattergeo]:
     site_map_trajs = create_site_map_with_trajectories() # создаем объект для отрисовки траектории
-    site_map_end_trajs = create_site_map_with_tag() # создаем объект для отрисовки конца траектории
+    site_map_end_trajs = create_site_map_with_tag(name=name) # создаем объект для отрисовки конца траектории
 
-        # Устанавливаем точки траектории
-    site_map_trajs.lat = traj.traj_lat[traj.idx_start_point:traj.idx_end_point:3]
-    site_map_trajs.lon = traj.traj_lon[traj.idx_start_point:traj.idx_end_point:3]
+    # Устанавливаем точки траектории
+    site_map_trajs.lat = traj.traj_lat[traj.idx_start_point:traj.idx_end_point:1]
+    site_map_trajs.lon = traj.traj_lon[traj.idx_start_point:traj.idx_end_point:1]
     site_map_trajs.marker.color = current_color
 
-        # Устанавливаем координаты последней точки
+    # Устанавливаем координаты последней точки
     site_map_end_trajs.lat = [traj.traj_lat[traj.idx_end_point]]
     site_map_end_trajs.lon = [traj.traj_lon[traj.idx_end_point]]
     site_map_end_trajs.marker.color = current_color
