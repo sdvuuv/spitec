@@ -45,7 +45,7 @@ class Trajectorie:
         self.idx_start_point = 0
         self.idx_end_point = 0
         self.sat_exist = True
-        self.traj_el = []
+        self.traj_hm = []
 
     def add_trajectory_points(self, azs, els, times, hm = 300) -> None:
         self.sat_exist = True
@@ -93,5 +93,5 @@ class Trajectorie:
         self.times = np.insert(self.times, indices_to_insert.repeat(3), values_to_insert_time)
         self.traj_lat = np.insert(self.traj_lat, indices_to_insert.repeat(3), values_to_insert_coords)
         self.traj_lon = np.insert(self.traj_lon, indices_to_insert.repeat(3), values_to_insert_coords) 
-        if len(self.traj_el) != 0:
-             self.traj_el = np.insert(self.traj_el, indices_to_insert.repeat(3), values_to_insert_coords) 
+        if len(self.traj_hm) != 0:
+             self.traj_hm = np.insert(self.traj_hm, indices_to_insert.repeat(3), values_to_insert_coords) 

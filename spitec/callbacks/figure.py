@@ -294,7 +294,7 @@ def _get_objs_new_trajectories(
             trajectory.times = np.array(datetime_array)
             trajectory.traj_lat = np.array(data["traj_lat"], dtype=object)
             trajectory.traj_lon = np.array(data["traj_lon"], dtype=object)
-            trajectory.traj_el = np.array(data["traj_el"], dtype=object)
+            trajectory.traj_hm = np.array(data["traj_hm"], dtype=object)
             new_trajectory_colors.append(data["color"])
             new_trajectory_objs.append(trajectory)
     return new_trajectory_objs, new_trajectory_colors
@@ -308,8 +308,8 @@ def _create_trajectory(
     site_map_end_trajs = create_site_map_with_tag(name=name) # создаем объект для отрисовки конца траектории
 
     # Устанавливаем точки траектории
-    site_map_trajs.lat = traj.traj_lat[traj.idx_start_point:traj.idx_end_point:1]
-    site_map_trajs.lon = traj.traj_lon[traj.idx_start_point:traj.idx_end_point:1]
+    site_map_trajs.lat = traj.traj_lat[traj.idx_start_point:traj.idx_end_point:3]
+    site_map_trajs.lon = traj.traj_lon[traj.idx_start_point:traj.idx_end_point:3]
     site_map_trajs.marker.color = current_color
 
     # Устанавливаем координаты последней точки

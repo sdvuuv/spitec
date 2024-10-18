@@ -1022,12 +1022,12 @@ def register_callbacks(app: dash.Dash) -> None:
         prevent_initial_call=True,
     )
     def update_upload_text(filename: str, contents):
-        error_text = language["tab-add-trajectories"]["error-name"]
+        error_text = language["tab-add-trajectories"]["error-upload-file"]
         error_style = {"visibility": "hidden"}
 
         upload_text = language["tab-add-trajectories"]["children"]
 
-        if filename is None or not filename.endswith('.txt'):
+        if filename is None:
             error_style = {
                 "margin-top": "10px",
                 "fontSize": "16px",
@@ -1116,44 +1116,65 @@ def register_callbacks(app: dash.Dash) -> None:
                 "fontSize": "16px",
                 "color": "red",
             }
-        elif file_contents is None or not filename.endswith('.txt'):
-                error_text = language["tab-add-trajectories"]["error-file"]
+        elif file_contents is None:
+                error_text = language["tab-add-trajectories"]["error-upload-file"]
                 error_style = {
                     "margin-top": "10px",
                     "fontSize": "16px",
                     "color": "red",
                 }
         else:
-            content_type, content_string = file_contents.split(',')
-            decoded = base64.b64decode(content_string)
-            data_string = decoded.decode('utf-8')
+            try:
+                local_file_path = Path(local_file)
 
-            lines = data_string.strip().split('\n')
-            data_rows = [line.split(',') for line in lines[1:]]  # Получаем данные без загаловков
-            times, lons, lats, els = [], [], [], []
-            for row in data_rows:
-                traj_time_str = datetime.strptime(row[0], "%Y-%m-%d %H:%M:%S")
-                traj_time = traj_time_str.replace(tzinfo=timezone.utc)
-                times.append(traj_time)
-                lons.append(float(row[1]))
-                lats.append(float(row[2]))
-                els.append(float(row[3]))
-
-            traj = Trajectorie(trajectory_name, None, None, None)
-            traj.traj_lat = np.array(np.degrees(lats), dtype=object)
-            traj.traj_lon = np.array(np.degrees(lons), dtype=object)
-            traj.times = np.array(times)
-            traj.trag_el = np.array(np.degrees(els), dtype=object)
+                content_type, content_string = file_contents.split(',')
+                decoded = base64.b64decode(content_string)
+                data_string = decoded.decode('utf-8')
             
-            traj.adding_artificial_value()
+                lines = data_string.strip().split('\n')
+                data_rows = [line.split(',') for line in lines[1:]]  # Получаем данные без загаловков
+                times, lons, lats, hms = [], [], [], []
+                for row in data_rows:
+                    traj_time_str = datetime.strptime(
+                        f"{local_file_path.stem} {row[0]}","%Y-%m-%d %H:%M:%S"
+                    )
+                    traj_time = traj_time_str.replace(tzinfo=timezone.utc)
+                    
+                    times.append(traj_time)
+                    lons.append(float(row[1]))
+                    lats.append(float(row[2]))
+                    hms.append(float(row[3]))
 
-            trajectories[trajectory_name] = {
-                "times": traj.times,
-                "traj_lat": traj.traj_lat,
-                "traj_lon": traj.traj_lon ,
-                "traj_el": traj.trag_el,
-                "color": trajectory_color,
-            }
+                traj = Trajectorie(trajectory_name, None, None, None)
+                traj.traj_lat = np.array(lats, dtype=object)
+                traj.traj_lon = np.array(lons, dtype=object)
+                traj.times = np.array(times)
+                traj.traj_hm = np.array(hms, dtype=object)
+                
+                traj.adding_artificial_value()
+
+                trajectories[trajectory_name] = {
+                    "times": traj.times,
+                    "traj_lat": traj.traj_lat,
+                    "traj_lon": traj.traj_lon ,
+                    "traj_hm": traj.traj_hm,
+                    "color": trajectory_color,
+                }
+            except Exception:
+                error_text = [
+                    language["tab-add-trajectories"]["error-file"],
+                    ". ",
+                    language["tab-add-trajectories"]["example"],
+                    html.Br(),
+                    language["tab-add-trajectories"]["format"],
+                    html.Br(),
+                    language["tab-add-trajectories"]["format-example"]
+                ]
+                error_style = {
+                    "margin-top": "10px",
+                    "fontSize": "14px",
+                    "color": "red",
+                }
 
         if len(trajectories) == 0:
             trajectories = None
