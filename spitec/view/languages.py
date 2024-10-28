@@ -11,6 +11,7 @@ languages = {
             "delete-element": "Удалить",
             "add-element": "Добавить",
             "check-file-size": "Проверить размер файла",
+            "share": "Поделиться",
         },
         "graph-site-map": {
             "title": "Карта",
@@ -102,6 +103,7 @@ languages = {
             "delete-element": "Delete",
             "add-element": "Add",
             "check-file-size": "Check file size",
+            "share": "Share",
         },
         "graph-site-map": {
             "title": "Sites Map",

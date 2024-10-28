@@ -46,6 +46,7 @@ def create_layout() -> html.Div:
             dcc.Store(id="sip-tag-time-store", storage_type="session"),
             dcc.Store(id="new-points-store", storage_type="session"),
             dcc.Store(id="new-trajectories-store", storage_type="session"),
+            dcc.Store(id="link-store", storage_type="session"),
             dcc.Location(id="url", refresh=False),
             dbc.Row(
                 [
@@ -121,6 +122,7 @@ def _create_left_side() -> list[dbc.Row]:
     checkbox_site = _create_checkbox_site()
     download_window = _create_download_window()
     open_window = _create_open_window()
+    share_window = _create_share_window()
     input_hm = _create_input_hm()
     input_time = _create_input_time()
     left_side = [
@@ -131,6 +133,10 @@ def _create_left_side() -> list[dbc.Row]:
                         download_window,
                         html.Div(
                             open_window,
+                            style={"margin-left": "15px"},
+                        ),
+                        html.Div(
+                            share_window,
                             style={"margin-left": "15px"},
                         ),
                     ],
@@ -359,6 +365,55 @@ def _create_open_window() -> html.Div:
         ]
     )
     return open_window
+
+def _create_share_window() -> html.Div:
+    share_window = html.Div(
+        [
+            dbc.Button(language["buttons"]["share"], id="share"),
+            dbc.Modal(
+                [
+                    dbc.ModalHeader(
+                        dbc.ModalTitle(language["buttons"]["share"])
+                    ),
+                    dbc.ModalBody(
+                        [
+                            html.Div(
+                                [
+                                    dbc.Input(
+                                        id="link",
+                                        type="text",
+                                        readonly=True,
+                                        style={
+                                            "width": "80%",
+                                        },
+                                    ),
+                                    dbc.Button(
+                                        id="copy-link",
+                                    ),
+                                ],
+                                style={
+                                    "display": "flex",
+                                    "justify-content": "space-around",
+                                },
+                            ),
+                            html.Div(
+                                dbc.Button(
+                                    language["boot-progress-window"][
+                                        "cancel-download"
+                                    ],
+                                    id="cancel-share",
+                                ),
+                                style={"text-align": "center", "margin-top": "20px"},
+                            ),
+                        ]
+                    ),
+                ],
+                id="share-window",
+                is_open=False,
+            ),
+        ]
+    )
+    return share_window
 
 
 def create_site_map_with_points() -> go.Scattergeo:
@@ -1030,3 +1085,26 @@ def _create_add_trajectory_tab() -> list[dbc.Row]:
         )
     ]
     return tab_add_trajectories
+
+def create_index_string() -> str:
+    index_string = '''
+    <!DOCTYPE html>
+    <html>
+        <head>
+            {%metas%}
+            <title>{%title%}</title>
+            {%favicon%}
+            {%css%}
+            <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
+        </head>
+        <body>
+            {%app_entry%}
+            <footer>
+                {%config%}
+                {%scripts%}
+                {%renderer%}
+            </footer>
+        </body>
+    </html>
+    '''
+    return index_string

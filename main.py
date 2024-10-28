@@ -11,6 +11,7 @@ app = Dash(
     external_stylesheets=[dbc.themes.FLATLY],
     title='Spitec'
 )
+app.index_string = create_index_string()
 server = app.server
 
 app.layout = create_layout()

@@ -6,10 +6,28 @@ from .figure import *
 import dash
 from pathlib import Path
 import base64
+import uuid
+from flask import request
+import json
 
 
 language = languages["en"]
 FILE_FOLDER = Path("data")
+
+def save_data_json(session_id: str, data: dict) -> bool:
+    try:
+        with open(FILE_FOLDER / f"{session_id}.json", 'w') as f:
+            json.dump(data, f)
+        return True
+    except ValueError:
+        return False
+
+def load_data_json(session_id: str) -> dict:
+    try:
+        with open(FILE_FOLDER / f"{session_id}.json", 'r') as f:
+            return json.load(f)
+    except FileNotFoundError:
+        return None
 
 
 def register_callbacks(app: dash.Dash) -> None:
@@ -1586,6 +1604,123 @@ def register_callbacks(app: dash.Dash) -> None:
             None,
             None
         )
+    
+    @app.callback(
+        [
+            Output("share-window", "is_open", allow_duplicate=True),
+            Output("link", "value"),
+            Output("copy-link", "children", allow_duplicate=True),
+        ],
+        [Input("share", "n_clicks")],
+        [
+            State("share-window", "is_open"),
+            State('link-store', 'data'),
+
+            State("projection-radio", "value"),
+            State("hide-show-site", "value"),
+            State("region-site-names-store", "data"),
+            State("site-coords-store", "data"),
+            State("site-data-store", "data"),
+            State("local-file-store", "data"),
+            State("time-slider", "value"),
+            State("selection-data-types", "value"),
+            State("satellites-options-store", "data"),
+            State("selection-satellites", "value"),
+            State("input-shift", "value"),
+            State("input-hm", "value"),
+            State("sip-tag-time-store", "data"),
+            State("new-points-store", "data"),
+            State("new-trajectories-store", "data"),
+        ],
+        prevent_initial_call=True,
+    )
+    def open_close_share_window(
+        n1: int,
+        is_open: bool,
+        link_store: str,
+
+        projection_value: ProjectionType,
+        show_names_site: bool,
+        region_site_names: dict[str, int],
+        site_coords: dict[Site, dict[Coordinate, float]],
+        site_data_store: dict[str, int],
+        local_file: str,
+        time_value: list[int],
+        data_types: str,
+        satellites_options: list[dict[str, str]],
+        sat: Sat,
+        shift: float,
+        input_hm: float,
+        sip_tag_time: str,
+        new_points: dict[str, dict[str, str | float]],
+        new_trajectories: dict[str, dict[str, float | str]],
+    ) -> list[bool, str]:
+        session_id = None
+        if link_store is None:
+            base_url = request.host_url
+            session_id = str(uuid.uuid4()) 
+            link = f"{base_url}session_id={session_id}"
+        else:
+            session_id = link_store.split('=')[1]  
+            link = link_store
+
+        data_to_save = {
+            "projection_value": projection_value,
+            "show_names_site": show_names_site,
+            "region_site_names": region_site_names,
+            "site_coords": site_coords,
+            "site_data_store": site_data_store,
+            "local_file": local_file,
+            "time_value": time_value,
+            "data_types": data_types,
+            "satellites_options": satellites_options,
+            "sat": sat,
+            "shift": shift,
+            "input_hm": input_hm,
+            "sip_tag_time": sip_tag_time,
+            "new_points": new_points,
+            "new_trajectories": new_trajectories,
+        }
+        save_data_json(session_id, data_to_save)
+
+        if not is_open:
+            icon = html.I(className="fas fa-copy"),
+        else:
+            icon = html.I(className="fas fa-check")
+        return not is_open, link, icon
+    
+    @app.callback(
+        Output("share-window", "is_open", allow_duplicate=True),
+        Input("cancel-share", "n_clicks"),
+        prevent_initial_call=True,
+    )
+    def cancel_share(n: int) -> bool:
+        return False
+    
+    app.clientside_callback(
+        """
+        function(n_clicks, text) {
+            if (n_clicks > 0) {
+                navigator.clipboard.writeText(text);
+                return text;  // Возвращаем пустую строку
+            }
+            return null;
+        }
+        """,
+        Output('link-store', 'data'),
+        Input('copy-link', 'n_clicks'),
+        State('link', 'value'),
+    )
+
+    @app.callback(
+        Output("copy-link", "children", allow_duplicate=True),
+        Input('link-store', 'data'),
+        prevent_initial_call=True,
+    )
+    def successful_copying(data: int) -> html.I:
+        if data is not None:
+            return html.I(className="fas fa-check")
+        return dash.no_update
 
     @app.callback(
         Output("input-shift", "value", allow_duplicate=True),
