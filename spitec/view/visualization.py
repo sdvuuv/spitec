@@ -46,7 +46,7 @@ def create_layout() -> html.Div:
             dcc.Store(id="sip-tag-time-store", storage_type="session"),
             dcc.Store(id="new-points-store", storage_type="session"),
             dcc.Store(id="new-trajectories-store", storage_type="session"),
-            dcc.Store(id="link-store", storage_type="session"),
+            dcc.Store(id="session-id-store", storage_type="session"),
             dcc.Location(id="url", refresh=False),
             dbc.Row(
                 [

@@ -9,10 +9,19 @@ import base64
 import uuid
 from flask import request
 import json
+import hashlib
 
 
 language = languages["en"]
 FILE_FOLDER = Path("data")
+
+def calculate_json_hash(data: dict):
+    json_string = json.dumps(data, sort_keys=True).encode('utf-8')
+
+    hash_object = hashlib.sha256()
+    hash_object.update(json_string)
+
+    return hash_object.hexdigest()
 
 def save_data_json(session_id: str, data: dict) -> bool:
     try:
@@ -24,7 +33,7 @@ def save_data_json(session_id: str, data: dict) -> bool:
 
 def load_data_json(session_id: str) -> dict:
     try:
-        with open(FILE_FOLDER / f"{session_id}.json", 'r') as f:
+        with open(FILE_FOLDER / f"{session_id}.json", 'r',  encoding='utf-8') as f:
             return json.load(f)
     except FileNotFoundError:
         return None
@@ -1531,7 +1540,7 @@ def register_callbacks(app: dash.Dash) -> None:
         options = []
         if FILE_FOLDER.exists():
             for file_path in FILE_FOLDER.iterdir():
-                if file_path.is_file():
+                if file_path.is_file() and file_path.name.endswith('.h5'):
                     options.append(
                         {"label": file_path.name, "value": file_path.name}
                     )
@@ -1610,11 +1619,12 @@ def register_callbacks(app: dash.Dash) -> None:
             Output("share-window", "is_open", allow_duplicate=True),
             Output("link", "value"),
             Output("copy-link", "children", allow_duplicate=True),
+            Output('session-id-store', 'data', allow_duplicate=True)
         ],
         [Input("share", "n_clicks")],
         [
             State("share-window", "is_open"),
-            State('link-store', 'data'),
+            State('session-id-store', 'data'),
 
             State("projection-radio", "value"),
             State("hide-show-site", "value"),
@@ -1637,7 +1647,7 @@ def register_callbacks(app: dash.Dash) -> None:
     def open_close_share_window(
         n1: int,
         is_open: bool,
-        link_store: str,
+        session_id_store: dict[str, str],
 
         projection_value: ProjectionType,
         show_names_site: bool,
@@ -1656,13 +1666,7 @@ def register_callbacks(app: dash.Dash) -> None:
         new_trajectories: dict[str, dict[str, float | str]],
     ) -> list[bool, str]:
         session_id = None
-        if link_store is None:
-            base_url = request.host_url
-            session_id = str(uuid.uuid4()) 
-            link = f"{base_url}session_id={session_id}"
-        else:
-            session_id = link_store.split('=')[1]  
-            link = link_store
+        base_url = request.host_url
 
         data_to_save = {
             "projection_value": projection_value,
@@ -1681,13 +1685,35 @@ def register_callbacks(app: dash.Dash) -> None:
             "new_points": new_points,
             "new_trajectories": new_trajectories,
         }
-        save_data_json(session_id, data_to_save)
 
+        if session_id_store is None:
+            session_id_store = {}
+
+            session_id = str(uuid.uuid4()) 
+            save_data_json(session_id, data_to_save)
+            file_hash = calculate_json_hash(data_to_save)
+            session_id_store[session_id] = file_hash
+        else:
+            session_id_exists = False
+            new_file_hash = calculate_json_hash(data_to_save)
+            
+            for key, value in session_id_store.items():
+                if new_file_hash == value:
+                    session_id = key
+                    session_id_exists = True
+                    break
+
+            if not session_id_exists:
+                session_id = str(uuid.uuid4()) 
+                save_data_json(session_id, data_to_save)
+                session_id_store[session_id] = new_file_hash
+        
+        link = f"{base_url}session_id={session_id}"
         if not is_open:
-            icon = html.I(className="fas fa-copy"),
+            icon = html.I(className="fas fa-copy")
         else:
             icon = html.I(className="fas fa-check")
-        return not is_open, link, icon
+        return not is_open, link, icon, session_id_store
     
     @app.callback(
         Output("share-window", "is_open", allow_duplicate=True),
@@ -1702,25 +1728,23 @@ def register_callbacks(app: dash.Dash) -> None:
         function(n_clicks, text) {
             if (n_clicks > 0) {
                 navigator.clipboard.writeText(text);
-                return text;  // Возвращаем пустую строку
+                return window.dash_clientside.no_update;
             }
-            return null;
+            return window.dash_clientside.no_update;
         }
         """,
-        Output('link-store', 'data'),
+        Output('session-id-store', 'data'),
         Input('copy-link', 'n_clicks'),
         State('link', 'value'),
     )
 
     @app.callback(
         Output("copy-link", "children", allow_duplicate=True),
-        Input('link-store', 'data'),
+        Input('copy-link', 'n_clicks'),
         prevent_initial_call=True,
     )
-    def successful_copying(data: int) -> html.I:
-        if data is not None:
-            return html.I(className="fas fa-check")
-        return dash.no_update
+    def successful_copying(n: int) -> html.I:
+        return html.I(className="fas fa-check")
 
     @app.callback(
         Output("input-shift", "value", allow_duplicate=True),
