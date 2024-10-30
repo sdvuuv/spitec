@@ -1550,14 +1550,14 @@ def register_callbacks(app: dash.Dash) -> None:
         [
             Output("open-window", "is_open"),
             Output("graph-site-map", "figure", allow_duplicate=True),
-            Output("local-file-store", "data"),
+            Output("local-file-store", "data", allow_duplicate=True),
             Output("graph-site-data", "figure", allow_duplicate=True),
             Output("time-slider", "disabled", allow_duplicate=True),
-            Output("site-coords-store", "data"),
-            Output("region-site-names-store", "data"),
-            Output("site-data-store", "data"),
+            Output("site-coords-store", "data", allow_duplicate=True),
+            Output("region-site-names-store", "data", allow_duplicate=True),
+            Output("site-data-store", "data", allow_duplicate=True),
             Output("selection-satellites", "options", allow_duplicate=True),
-            Output("satellites-options-store", "data"),
+            Output("satellites-options-store", "data", allow_duplicate=True),
             Output("scale-map-store", "data", allow_duplicate=True),
             Output("relayout-map-store", "data", allow_duplicate=True),
             Output("sip-tag-time-store", "data", allow_duplicate=True),
@@ -1686,17 +1686,16 @@ def register_callbacks(app: dash.Dash) -> None:
             "new_trajectories": new_trajectories,
         }
 
+        new_file_hash = calculate_json_hash(data_to_save)
+
         if session_id_store is None:
             session_id_store = {}
 
             session_id = str(uuid.uuid4()) 
             save_data_json(session_id, data_to_save)
-            file_hash = calculate_json_hash(data_to_save)
-            session_id_store[session_id] = file_hash
+            session_id_store[session_id] = new_file_hash
         else:
             session_id_exists = False
-            new_file_hash = calculate_json_hash(data_to_save)
-            
             for key, value in session_id_store.items():
                 if new_file_hash == value:
                     session_id = key
