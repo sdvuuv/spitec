@@ -1650,7 +1650,9 @@ def register_callbacks(app: dash.Dash) -> None:
         new_trajectories: dict[str, dict[str, float | str]],
     ) -> list[bool, str]:
         session_id = None
-        base_url = request.host_url
+        part_url = request.host_url.split("://")
+        proto = request.headers.get('X-Forwarded-Proto', request.scheme)
+        base_url = proto + "://" + part_url[1] 
 
         data_to_save = {
             "projection_value": projection_value,
