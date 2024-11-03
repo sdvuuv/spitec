@@ -1,6 +1,8 @@
 import diskcache
 from dash import DiskcacheManager, Dash
-from spitec import *
+import dash_bootstrap_components as dbc
+from spitec.view.visualization import create_layout, create_index_string
+from spitec.callbacks.callbacks import register_callbacks
 
 cache = diskcache.Cache("./cache")
 background_callback_manager = DiskcacheManager(cache)

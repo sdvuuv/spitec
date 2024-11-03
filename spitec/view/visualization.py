@@ -2,9 +2,9 @@ from dash import html, dcc
 import plotly.graph_objects as go
 import dash_bootstrap_components as dbc
 from enum import Enum
-from .languages import languages
 from datetime import datetime, date, timedelta
-from ..processing import DataProducts
+from spitec.view.languages import languages
+from spitec.processing.data_products import DataProducts
 
 
 language = languages["en"]
@@ -47,7 +47,10 @@ def create_layout() -> html.Div:
             dcc.Store(id="new-points-store", storage_type="session"),
             dcc.Store(id="new-trajectories-store", storage_type="session"),
             dcc.Store(id="session-id-store", storage_type="session"),
+            dcc.Store(id="is-link-store", storage_type="session", data=False),
             dcc.Location(id="url", refresh=False),
+
+            dcc.Store(id="projection-radio-store", storage_type="session"),
             dbc.Row(
                 [
                     dbc.Col(
@@ -485,7 +488,7 @@ def _create_input_hm() -> dbc.Input:
         type="number",
         step="0.1",
         value=300,
-        persistence=300,
+        persistence=True,
         persistence_type="session",
         style={"width": "85px"},
     )
@@ -497,7 +500,7 @@ def _create_input_time() -> dbc.Input:
         type="time",
         step=1,
         value="00:00:00",
-        persistence="00:00:00",
+        persistence=True,
         persistence_type="session",
         style={"width": "130px"},
     )
@@ -578,7 +581,7 @@ def _create_input_shift() -> dbc.Input:
         type="number",
         step="0.5",
         value=-0.5,
-        persistence=-0.5,
+        persistence=True,
         persistence_type="session",
         style={"width": "80px", "margin-right": "20px"},
     )
@@ -609,7 +612,7 @@ def _create_selection_data_types() -> dbc.Select:
         options=options,
         value=DataProducts.dtec_2_10.name,
         style={"width": "250px", "margin-right": "20px"},
-        persistence=DataProducts.dtec_2_10.name,
+        persistence=True,
         persistence_type="session",
     )
     return select

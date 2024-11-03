@@ -1,4 +1,4 @@
-from ..view import *
+from spitec.view.visualization import *
 from spitec.processing.data_processing import *
 from spitec.processing.data_products import DataProducts
 from spitec.processing.trajectorie import Trajectorie

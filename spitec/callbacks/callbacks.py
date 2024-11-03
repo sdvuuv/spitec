@@ -1,42 +1,21 @@
 from dash.dependencies import Input, Output, State
 import plotly.graph_objects as go
-from ..view import *
-from ..processing import *
-from .figure import *
+from spitec.view.visualization import *
+from spitec.view.languages import languages
+from spitec.processing.data_processing import *
+from spitec.processing.data_products import DataProducts
+from spitec.processing.trajectorie import Trajectorie
+from spitec.processing.site_processing import *
+from spitec.callbacks.figure import *
 import dash
 from pathlib import Path
 import base64
 import uuid
 from flask import request
-import json
-import hashlib
 
 
 language = languages["en"]
 FILE_FOLDER = Path("data")
-
-def calculate_json_hash(data: dict):
-    json_string = json.dumps(data, sort_keys=True).encode('utf-8')
-
-    hash_object = hashlib.sha256()
-    hash_object.update(json_string)
-
-    return hash_object.hexdigest()
-
-def save_data_json(session_id: str, data: dict) -> bool:
-    try:
-        with open(FILE_FOLDER / f"{session_id}.json", 'w') as f:
-            json.dump(data, f)
-        return True
-    except ValueError:
-        return False
-
-def load_data_json(session_id: str) -> dict:
-    try:
-        with open(FILE_FOLDER / f"{session_id}.json", 'r',  encoding='utf-8') as f:
-            return json.load(f)
-    except FileNotFoundError:
-        return None
 
 
 def register_callbacks(app: dash.Dash) -> None:
@@ -46,6 +25,7 @@ def register_callbacks(app: dash.Dash) -> None:
             Output("scale-map-store", "data", allow_duplicate=True),
             Output("relayout-map-store", "data", allow_duplicate=True),
             Output("trajectory-error", "style", allow_duplicate=True),
+            Output("projection-radio-store", "data", allow_duplicate=True),
         ],
         [Input("projection-radio", "value")],
         [
@@ -120,7 +100,7 @@ def register_callbacks(app: dash.Dash) -> None:
             }
 
         scale_map = 1
-        return site_map, scale_map, None, style_traj_error
+        return site_map, scale_map, None, style_traj_error, projection_value
 
     @app.callback(
         [
@@ -1692,7 +1672,8 @@ def register_callbacks(app: dash.Dash) -> None:
             session_id_store = {}
 
             session_id = str(uuid.uuid4()) 
-            save_data_json(session_id, data_to_save)
+            file_name = FILE_FOLDER / f"{session_id}.json"
+            save_data_json(file_name, data_to_save)
             session_id_store[session_id] = new_file_hash
         else:
             session_id_exists = False
@@ -1704,7 +1685,8 @@ def register_callbacks(app: dash.Dash) -> None:
 
             if not session_id_exists:
                 session_id = str(uuid.uuid4()) 
-                save_data_json(session_id, data_to_save)
+                file_name = FILE_FOLDER / f"{session_id}.json"
+                save_data_json(file_name, data_to_save)
                 session_id_store[session_id] = new_file_hash
         
         link = f"{base_url}session_id={session_id}"
@@ -2047,6 +2029,23 @@ def register_callbacks(app: dash.Dash) -> None:
             Output("scale-map-store", "data"),
             Output("relayout-map-store", "data"),
             Output("trajectory-error", "style"),
+            Output("is-link-store", "data"),
+
+            Output("projection-radio", "value"),
+            Output("hide-show-site", "value"),
+            Output("region-site-names-store", "data"),
+            Output("site-coords-store", "data"),
+            Output("site-data-store", "data"),
+            Output("local-file-store", "data"),
+            Output("time-slider", "value"),
+            Output("selection-data-types", "value"),
+            Output("satellites-options-store", "data"),
+            Output("selection-satellites", "value"),
+            Output("input-shift", "value"),
+            Output("input-hm", "value"),
+            Output("sip-tag-time-store", "data"),
+            Output("new-points-store", "data"),
+            Output("new-trajectories-store", "data"),
         ],
         [Input("url", "pathname")],
         [
@@ -2065,6 +2064,7 @@ def register_callbacks(app: dash.Dash) -> None:
             State("sip-tag-time-store", "data"),
             State("new-points-store", "data"),
             State("new-trajectories-store", "data"),
+            State("is-link-store", "data"),
         ],
     )
     def update_all(
@@ -2084,26 +2084,94 @@ def register_callbacks(app: dash.Dash) -> None:
         sip_tag_time: str,
         new_points: dict[str, dict[str, str | float]],
         new_trajectories: dict[str, dict[str, float | str]],
+        is_link: bool,
     ) -> list[go.Figure, bool, list[dict[str, str]], dict[str, str]]:
+        no_update = True
+        if pathname is not None and pathname != "/" and not is_link:
+            is_link = True
+            session_id = pathname.split("=")[1]
+            file_name = FILE_FOLDER / f"{session_id}.json"
+            session_data = load_data_json(file_name)
+
+            projection_value = session_data["projection_value"]
+            show_names_site = session_data["show_names_site"]
+            region_site_names = session_data["region_site_names"]
+            site_coords = session_data["site_coords"]
+            site_data_store = session_data["site_data_store"]
+            local_file = session_data["local_file"]
+            time_value = session_data["time_value"]
+            data_types = session_data["data_types"]
+            satellites_options = session_data["satellites_options"]
+            sat = session_data["sat"]
+            shift = session_data["shift"]
+            input_hm = session_data["input_hm"]
+            sip_tag_time = session_data["sip_tag_time"]
+            new_points = session_data["new_points"]
+            new_trajectories = session_data["new_trajectories"]
+            no_update = False
+        
+        dash_update = {
+                "projection_value": projection_value,
+                "show_names_site": show_names_site,
+                "region_site_names": region_site_names,
+                "site_coords": site_coords,
+                "site_data_store": site_data_store,
+                "local_file": local_file,
+                "time_value": time_value,
+                "data_types": data_types,
+                "satellites_options": satellites_options,
+                "sat": sat,
+                "shift": shift,
+                "input_hm": input_hm,
+                "sip_tag_time": sip_tag_time,
+                "new_points": new_points,
+                "new_trajectories": new_trajectories,
+        }
+
+        satellites_options, style_traj_error, site_map, site_data, disabled, scale_map = main_update(
+            dash_update
+        )
+        return_list = [
+            site_map,
+            site_data, 
+            disabled, 
+            satellites_options, 
+            scale_map, 
+            None, 
+            style_traj_error, 
+            is_link
+        ]
+
+        if no_update:
+            dash_no_update = [dash.no_update for _ in range(15)]
+            return_list.extend(dash_no_update)
+            return return_list
+        else:
+            return_list.extend(list(dash_update.values()))
+            return return_list
+
+    def main_update(
+        dash_update: dict
+    ) -> list:
         style_traj_error = {"visibility": "hidden"}
         site_map = create_map_with_points(
-            site_coords,
-            projection_value,
-            show_names_site,
-            region_site_names,
-            site_data_store,
+            dash_update["site_coords"],
+            dash_update["projection_value"],
+            dash_update["show_names_site"],
+            dash_update["region_site_names"],
+            dash_update["site_data_store"],
             None,
             None,
-            new_points,
+            dash_update["new_points"],
         )
         site_data = create_site_data_with_values(
-            site_data_store,
-            sat,
-            data_types,
-            local_file,
-            time_value,
-            shift,
-            sip_tag_time
+            dash_update["site_data_store"],
+            dash_update["sat"],
+            dash_update["data_types"],
+            dash_update["local_file"],
+            dash_update["time_value"],
+            dash_update["shift"],
+            dash_update["sip_tag_time"]
         )
 
         colors = {}
@@ -2114,20 +2182,22 @@ def register_callbacks(app: dash.Dash) -> None:
 
         site_map = create_map_with_trajectories(
             site_map,
-            local_file,
-            site_data_store,
-            site_coords,
-            sat, 
+            dash_update["local_file"],
+            dash_update["site_data_store"],
+            dash_update["site_coords"],
+            dash_update["sat"], 
             colors,
-            time_value,
-            input_hm,
-            sip_tag_time,
-            new_trajectories,
+            dash_update["time_value"],
+            dash_update["input_hm"],
+            dash_update["sip_tag_time"],
+            dash_update["new_trajectories"],
         )
             
         disabled = True if len(site_data.data) == 0 else False
-        if satellites_options is None:
+        if dash_update["satellites_options"] is None:
             satellites_options = []
+        else:
+            satellites_options = dash_update["satellites_options"]
         scale_map = 1
 
         if site_map.layout.geo.projection.type != ProjectionType.ORTHOGRAPHIC.value and \
@@ -2138,13 +2208,5 @@ def register_callbacks(app: dash.Dash) -> None:
                 "fontSize": "16px",
                 "color": "red",
             }
-
-        return (
-            site_map,
-            site_data,
-            disabled,
-            satellites_options,
-            scale_map,
-            None,
-            style_traj_error
-        )
+            
+        return satellites_options,style_traj_error,site_map,site_data,disabled,scale_map

@@ -3,8 +3,8 @@ from pathlib import Path
 from datetime import datetime, timezone
 import numpy as np
 from numpy.typing import NDArray
-from .site_processing import Site
-from .data_products import DataProduct, DataProducts
+from spitec.processing.site_processing import Site 
+from spitec.processing.data_products import DataProduct, DataProducts
 
 
 class Sat(str):

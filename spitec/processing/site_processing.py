@@ -5,6 +5,8 @@ import numpy as np
 from numpy.typing import NDArray
 from numpy import pi, sin, cos, arccos
 import requests
+import json
+import hashlib
 
 
 DOWNLOAD_URL = "https://simurg.space/gen_file?data=obs&date="
@@ -56,7 +58,29 @@ def сheck_file_size(filename: str) -> int:
     else:
         Mb = round(float(total_length) / 1024 / 1024 / 1024, 2)
         return Mb
+    
+def calculate_json_hash(data: dict):
+    json_string = json.dumps(data, sort_keys=True).encode('utf-8')
 
+    hash_object = hashlib.sha256()
+    hash_object.update(json_string)
+
+    return hash_object.hexdigest()
+
+def save_data_json(file_name: Path | str, data: dict) -> bool:
+    try:
+        with open(file_name, 'w') as f:
+            json.dump(data, f)
+        return True
+    except ValueError:
+        return False
+
+def load_data_json(file_name: Path | str) -> dict:
+    try:
+        with open(file_name, 'r', encoding='utf-8') as f:
+            return json.load(f)
+    except FileNotFoundError:
+        return None
 
 
 def get_sites_coords(
