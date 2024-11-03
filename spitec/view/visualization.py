@@ -51,6 +51,12 @@ def create_layout() -> html.Div:
             dcc.Location(id="url", refresh=False),
 
             dcc.Store(id="projection-radio-store", storage_type="session"),
+            dcc.Store(id="checkbox-site-store", storage_type="session"),
+            dcc.Store(id="time-slider-store", storage_type="session"),
+            dcc.Store(id="selection-data-types-store", storage_type="session"),
+            dcc.Store(id="selection-satellites-store", storage_type="session"),
+            dcc.Store(id="input-shift-store", storage_type="session"),
+            dcc.Store(id="input-hm-store", storage_type="session"),
             dbc.Row(
                 [
                     dbc.Col(
