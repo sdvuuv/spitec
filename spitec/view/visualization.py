@@ -48,6 +48,8 @@ def create_layout() -> html.Div:
             dcc.Store(id="new-trajectories-store", storage_type="session"),
             dcc.Store(id="session-id-store", storage_type="session"),
             dcc.Store(id="is-link-store", storage_type="session", data=False),
+            dcc.Store(id="current-select-sip-tag", storage_type="session"),
+            dcc.Store(id="all-select-sip-tag", storage_type="session"),
             dcc.Location(id="url", refresh=False),
 
             dcc.Store(id="projection-radio-store", storage_type="session"),
@@ -549,7 +551,9 @@ def _create_data_tab() -> list[dbc.Row]:
     selection_data_types = _create_selection_data_types()
     selection_satellites = _create_empty_selection_satellites()
     input_shift = _create_input_shift()
+    geo_stuctures_window = _create_geo_stuctures_window()
     data_tab = [
+        dbc.Row(geo_stuctures_window),
         dbc.Row(
             dcc.Graph(id="graph-site-data", figure=site_data),
             style={"margin-top": "28px"},
@@ -1094,6 +1098,51 @@ def _create_add_trajectory_tab() -> list[dbc.Row]:
         )
     ]
     return tab_add_trajectories
+
+def _create_geo_stuctures_window() -> html.Div:
+    geo_stuctures_window = html.Div(
+        [
+            dbc.Modal(
+                [
+                    dbc.ModalHeader(
+                        dbc.ModalTitle(language["geo_stuctures_window"]["title"])
+                    ),
+                    dbc.ModalBody(
+                        [
+                            html.Div(
+                                [
+                                    dbc.Select(
+                                        id="select-geo-stucture",
+                                        options=[],
+                                        style={
+                                            "width": "50%",
+                                        },
+                                    ),
+                                ],
+                                style={
+                                    "display": "flex",
+                                    "justify-content": "center",
+                                },
+                            ),
+                            html.Div(
+                                dbc.Button(
+                                    language["buttons"]["select"],
+                                    id="select",
+                                ),
+                                style={
+                                    "text-align": "center",
+                                    "margin-top": "20px",
+                                },
+                            ),
+                        ]
+                    ),
+                ],
+                id="geo-stuctures-window",
+                is_open=False,
+            ),
+        ]
+    )
+    return geo_stuctures_window
 
 def create_index_string() -> str:
     index_string = '''

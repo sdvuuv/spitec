@@ -374,6 +374,7 @@ def create_site_data_with_values(
     time_value: list[int],
     shift: float,
     sip_tag_time: str,
+    all_select_sip_tag: list[dict],
 ) -> go.Figure:
     site_data = create_site_data()
     
@@ -384,7 +385,11 @@ def create_site_data_with_values(
             current_date = local_file_path.stem  # Получаем '2024-01-01'
             sip_tag_datetime = datetime.strptime(f"{current_date} {sip_tag_time}", "%Y-%m-%d %H:%M:%S")
             sip_tag_datetime = sip_tag_datetime.replace(tzinfo=timezone.utc)
-            _add_sip_tag_line(site_data, sip_tag_datetime)
+            add_sip_tag_line(site_data, sip_tag_datetime)
+
+        if all_select_sip_tag is not None and len(all_select_sip_tag) != 0:
+            for tag in all_select_sip_tag:
+                add_sip_tag_line(site_data, tag["time"], tag["color"])
         
         # Определяем тип данных
         dataproduct = _define_data_type(data_types)
@@ -408,9 +413,10 @@ def create_site_data_with_values(
             site_data.update_layout(xaxis=dict(range=[limit[0], limit[1]]))
     return site_data
 
-def _add_sip_tag_line(
+def add_sip_tag_line(
         site_data: go.Figure,
-        sip_tag_datetime: datetime
+        sip_tag_datetime: datetime,
+        color: str = "darkblue"
     ) -> None:
     site_data.add_shape(
         type="line",
@@ -420,7 +426,7 @@ def _add_sip_tag_line(
         y1=1,  
         yref="paper",  
         line=dict(
-            color="darkblue",  
+            color=color,  
             width=1,      
             dash="dash" 
         )

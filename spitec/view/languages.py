@@ -12,6 +12,7 @@ languages = {
             "add-element": "Добавить",
             "check-file-size": "Проверить размер файла",
             "share": "Поделиться",
+            "select": "Выбрать",
         },
         "graph-site-map": {
             "title": "Карта",
@@ -104,6 +105,7 @@ languages = {
             "add-element": "Add",
             "check-file-size": "Check file size",
             "share": "Share",
+            "select": "Select",
         },
         "graph-site-map": {
             "title": "Sites Map",
@@ -175,6 +177,9 @@ languages = {
         "boot-progress-window":{
             "header": "Loading...",
             "cancel-download": "Сancel",
+        },
+        "geo_stuctures_window":{
+            "title": "Geo stuctures",
         },
         "trajectory":{
             "hm": "hm",
