@@ -873,7 +873,18 @@ def _create_add_points_tab() -> list[dbc.Row]:
                 dbc.Col(
                     dbc.Select(
                         id="point-marker",
-                        options=['Circle', 'Square', 'Diamond', 'Cross', 'X', 'Star', 'Hourglass'],
+                        options=[
+                            'Circle', 
+                            'Square', 
+                            'Diamond', 
+                            'Cross', 
+                            'X', 
+                            'Star', 
+                            'Hourglass', 
+                            'Pentagon',
+                            'Hexagram',
+                            'Bowtie',
+                        ],
                         value='Circle',
                     ),
                     width=4,

@@ -41,6 +41,7 @@ def register_callbacks(app: dash.Dash) -> None:
             State("sip-tag-time-store", "data"),
             State("new-points-store", "data"),
             State("new-trajectories-store", "data"),
+            State("all-select-sip-tag", "data"),
         ],
         prevent_initial_call=True,
     )
@@ -58,6 +59,7 @@ def register_callbacks(app: dash.Dash) -> None:
         sip_tag_time: str,
         new_points: dict[str, dict[str, str | float]],
         new_trajectories: dict[str, dict[str, float | str]],
+        all_select_sip_tag: list[dict],
     ) -> list[go.Figure, int, None, dict[str, str], ProjectionType]:
         style_traj_error = {"visibility": "hidden"}
         site_map = create_map_with_points(
@@ -87,6 +89,7 @@ def register_callbacks(app: dash.Dash) -> None:
             time_value,
             input_hm,
             sip_tag_time,
+            all_select_sip_tag,
             new_trajectories,
         )
 
@@ -202,6 +205,7 @@ def register_callbacks(app: dash.Dash) -> None:
             time_value,
             input_hm,
             sip_tag_time,
+            all_select_sip_tag,
             new_trajectories,
         )
         if site_map.layout.geo.projection.type != ProjectionType.ORTHOGRAPHIC.value and \
@@ -303,6 +307,7 @@ def register_callbacks(app: dash.Dash) -> None:
             time_value,
             input_hm,
             sip_tag_time,
+            all_select_sip_tag,
             new_trajectories,
         )
 
@@ -316,6 +321,7 @@ def register_callbacks(app: dash.Dash) -> None:
             Output("site-data-store", "data", allow_duplicate=True),
             Output("trajectory-error", "style", allow_duplicate=True),
             Output("sip-tag-time-store", "data", allow_duplicate=True),
+            Output("all-select-sip-tag", "data", allow_duplicate=True),
         ],
         [Input("clear-all", "n_clicks")],
         [
@@ -354,7 +360,7 @@ def register_callbacks(app: dash.Dash) -> None:
         )
         disabled = True
         style_traj_error = {"visibility": "hidden"}
-        return site_map, site_data, disabled, None, style_traj_error, None
+        return site_map, site_data, disabled, None, style_traj_error, None, None
 
     @app.callback(
         [
@@ -399,6 +405,7 @@ def register_callbacks(app: dash.Dash) -> None:
             State("sip-tag-time-store", "data"),
             State("new-points-store", "data"),
             State("new-trajectories-store", "data"),
+            State("all-select-sip-tag", "data"),
         ],
         prevent_initial_call=True,
     )
@@ -418,6 +425,7 @@ def register_callbacks(app: dash.Dash) -> None:
         sip_tag_time: str,
         new_points: dict[str, dict[str, str | float]],
         new_trajectories: dict[str, dict[str, float | str]],
+        all_select_sip_tag: list[dict],
     ) -> list[go.Figure, bool]:
         site_map = create_map_with_points(
             site_coords,
@@ -446,6 +454,7 @@ def register_callbacks(app: dash.Dash) -> None:
             time_value,
             input_hm,
             sip_tag_time,
+            all_select_sip_tag,
             new_trajectories,
         )
         return site_map, show_names_site
@@ -480,6 +489,7 @@ def register_callbacks(app: dash.Dash) -> None:
             State("sip-tag-time-store", "data"),
             State("new-points-store", "data"),
             State("new-trajectories-store", "data"),
+            State("all-select-sip-tag", "data"),
         ],
         prevent_initial_call=True,
     )
@@ -504,6 +514,7 @@ def register_callbacks(app: dash.Dash) -> None:
         sip_tag_time: str,
         new_points: dict[str, dict[str, str | float]],
         new_trajectories: dict[str, dict[str, float | str]],
+        all_select_sip_tag: list[dict],
     ) -> list[go.Figure | bool | dict[str, int]]:
         return_value_list = [
             None,
@@ -561,6 +572,7 @@ def register_callbacks(app: dash.Dash) -> None:
             time_value,
             input_hm,
             sip_tag_time,
+            all_select_sip_tag,
             new_trajectories,
         )
         return return_value_list
@@ -601,6 +613,7 @@ def register_callbacks(app: dash.Dash) -> None:
             State("sip-tag-time-store", "data"),
             State("new-points-store", "data"),
             State("new-trajectories-store", "data"),
+            State("all-select-sip-tag", "data"),
         ],
         prevent_initial_call=True,
     )
@@ -624,6 +637,7 @@ def register_callbacks(app: dash.Dash) -> None:
         sip_tag_time: str,
         new_points: dict[str, dict[str, str | float]],
         new_trajectories: dict[str, dict[str, float | str]],
+        all_select_sip_tag: list[dict],
     ) -> list[go.Figure | bool | dict[str, int]]:
         return_value_list = [None, False, False, False, region_site_names]
         sites = region_site_names
@@ -677,6 +691,7 @@ def register_callbacks(app: dash.Dash) -> None:
             time_value,
             input_hm,
             sip_tag_time,
+            all_select_sip_tag,
             new_trajectories,
         )
         return return_value_list
@@ -702,6 +717,7 @@ def register_callbacks(app: dash.Dash) -> None:
             State("sip-tag-time-store", "data"),
             State("new-points-store", "data"),
             State("new-trajectories-store", "data"),
+            State("all-select-sip-tag", "data"),
         ],
         prevent_initial_call=True,
     )
@@ -721,6 +737,7 @@ def register_callbacks(app: dash.Dash) -> None:
         sip_tag_time: str,
         new_points: dict[str, dict[str, str | float]],
         new_trajectories: dict[str, dict[str, float | str]],
+        all_select_sip_tag: list[dict],
     ) -> list[go.Figure | None]:
         site_map = create_map_with_points(
             site_coords,
@@ -749,6 +766,7 @@ def register_callbacks(app: dash.Dash) -> None:
             time_value,
             input_hm,
             sip_tag_time,
+            all_select_sip_tag,
             new_trajectories,
         )
         return site_map, None
@@ -784,6 +802,7 @@ def register_callbacks(app: dash.Dash) -> None:
             State("input-hm", "value"),
             State("sip-tag-time-store", "data"),
             State("new-trajectories-store", "data"),
+            State("all-select-sip-tag", "data"),
         ],
         prevent_initial_call=True,
     )
@@ -809,6 +828,7 @@ def register_callbacks(app: dash.Dash) -> None:
         input_hm: float,
         sip_tag_time: str,
         new_trajectories: dict[str, dict[str, float | str]],
+        all_select_sip_tag: list[dict],
     ) -> list[go.Figure | bool | dict[str, dict[str, str | float]], dict[str, str]]:
         return_value_list = [None, False, False, False, new_points]
         points = new_points
@@ -867,6 +887,7 @@ def register_callbacks(app: dash.Dash) -> None:
             time_value,
             input_hm,
             sip_tag_time,
+            all_select_sip_tag,
             new_trajectories,
         )
 
@@ -895,6 +916,7 @@ def register_callbacks(app: dash.Dash) -> None:
             State("sip-tag-time-store", "data"),
             State("region-site-names-store", "data"),
             State("new-trajectories-store", "data"),
+            State("all-select-sip-tag", "data"),
         ],
         prevent_initial_call=True,
     )
@@ -914,6 +936,7 @@ def register_callbacks(app: dash.Dash) -> None:
         sip_tag_time: str,
         region_site_names: dict[str, int],
         new_trajectories: dict[str, dict[str, float | str]],
+        all_select_sip_tag: list[dict],
     ) -> list[go.Figure | None]:
         site_map = create_map_with_points(
             site_coords,
@@ -942,6 +965,7 @@ def register_callbacks(app: dash.Dash) -> None:
             time_value,
             input_hm,
             sip_tag_time,
+            all_select_sip_tag,
             new_trajectories,
         )
         return site_map, None
@@ -969,6 +993,7 @@ def register_callbacks(app: dash.Dash) -> None:
             State("region-site-names-store", "data"),
             State("new-points-store", "data"),
             State("new-trajectories-store", "data"),
+            State("all-select-sip-tag", "data"),
         ],
         prevent_initial_call=True,
     )
@@ -990,6 +1015,7 @@ def register_callbacks(app: dash.Dash) -> None:
         region_site_names: dict[str, int],
         new_points: dict[str, dict[str, str | float]],
         new_trajectories: dict[str, dict[str, float | str]],
+        all_select_sip_tag: list[dict],
     ) -> list[go.Figure | None]:
         if name_point in new_points.keys():
             del new_points[name_point]
@@ -1023,6 +1049,7 @@ def register_callbacks(app: dash.Dash) -> None:
             time_value,
             input_hm,
             sip_tag_time,
+            all_select_sip_tag,
             new_trajectories,
         )
         return site_map, new_points
@@ -1089,6 +1116,7 @@ def register_callbacks(app: dash.Dash) -> None:
             State("time-slider", "value"),
             State("input-hm", "value"),
             State("sip-tag-time-store", "data"),
+            State("all-select-sip-tag", "data"),
         ],
         prevent_initial_call=True,
     )
@@ -1113,6 +1141,7 @@ def register_callbacks(app: dash.Dash) -> None:
         time_value: list[int],
         input_hm: float,
         sip_tag_time: str,
+        all_select_sip_tag: list[dict],
     ) -> list[go.Figure | bool | dict[str, dict[str, str | float]], dict[str, str]]:
         error_text = language["tab-add-trajectories"]["error-name"]
         error_style = {"visibility": "hidden"}
@@ -1223,6 +1252,7 @@ def register_callbacks(app: dash.Dash) -> None:
             time_value,
             input_hm,
             sip_tag_time,
+            all_select_sip_tag,
             trajectories,
         )
 
@@ -1249,6 +1279,7 @@ def register_callbacks(app: dash.Dash) -> None:
             State("sip-tag-time-store", "data"),
             State("region-site-names-store", "data"),
             State("new-points-store", "data"),
+            State("all-select-sip-tag", "data"),
         ],
         prevent_initial_call=True,
     )
@@ -1268,6 +1299,7 @@ def register_callbacks(app: dash.Dash) -> None:
         sip_tag_time: str,
         region_site_names: dict[str, int],
         new_points: dict[str, dict[str, str | float]],
+        all_select_sip_tag: list[dict],
     ) -> list[go.Figure | None]:
         site_map = create_map_with_points(
             site_coords,
@@ -1296,6 +1328,7 @@ def register_callbacks(app: dash.Dash) -> None:
             time_value,
             input_hm,
             sip_tag_time,
+            all_select_sip_tag,
             None
         )
         return site_map, None
@@ -1323,6 +1356,7 @@ def register_callbacks(app: dash.Dash) -> None:
             State("region-site-names-store", "data"),
             State("new-points-store", "data"),
             State("new-trajectories-store", "data"),
+            State("all-select-sip-tag", "data"),
         ],
         prevent_initial_call=True,
     )
@@ -1344,11 +1378,12 @@ def register_callbacks(app: dash.Dash) -> None:
         region_site_names: dict[str, int],
         new_points: dict[str, dict[str, str | float]],
         new_trajectories: dict[str, dict[str, float | str]],
+        all_select_sip_tag: list[dict],
     ) -> list[go.Figure | None]:
-        if name_trajectory in new_trajectories.keys():
+        if new_trajectories is not None and name_trajectory in new_trajectories.keys():
             del new_trajectories[name_trajectory]
-        if len(new_trajectories) == 0:
-            new_trajectories == None
+            if len(new_trajectories) == 0:
+                new_trajectories == None
             
         site_map = create_map_with_points(
             site_coords,
@@ -1377,6 +1412,7 @@ def register_callbacks(app: dash.Dash) -> None:
             time_value,
             input_hm,
             sip_tag_time,
+            all_select_sip_tag,
             new_trajectories,
         )
         return site_map, new_trajectories
@@ -1553,6 +1589,7 @@ def register_callbacks(app: dash.Dash) -> None:
             Output("sip-tag-time-store", "data", allow_duplicate=True),
             Output("new-points-store", "data", allow_duplicate=True),
             Output("new-trajectories-store", "data", allow_duplicate=True),
+            Output("all-select-sip-tag", "data", allow_duplicate=True),
         ],
         [Input("open-file", "n_clicks")],
         [
@@ -1598,6 +1635,7 @@ def register_callbacks(app: dash.Dash) -> None:
             options,
             options,
             scale_map,
+            None,
             None,
             None,
             None,
@@ -1785,6 +1823,7 @@ def register_callbacks(app: dash.Dash) -> None:
             State("sip-tag-time-store", "data"),
             State("new-points-store", "data"),
             State("new-trajectories-store", "data"),
+            State("all-select-sip-tag", "data"),
         ],
         prevent_initial_call=True,
     )
@@ -1804,6 +1843,7 @@ def register_callbacks(app: dash.Dash) -> None:
         sip_tag_time: str,
         new_points: dict[str, dict[str, str | float]],
         new_trajectories: dict[str, dict[str, float | str]],
+        all_select_sip_tag: list[dict],
     ) -> list[go.Figure, float]:
         colors = {}
         for data in site_data["data"]:
@@ -1831,6 +1871,7 @@ def register_callbacks(app: dash.Dash) -> None:
             time_value,
             input_hm,
             sip_tag_time,
+            all_select_sip_tag,
             new_trajectories,
         )
         return site_map, input_hm
@@ -1922,6 +1963,7 @@ def register_callbacks(app: dash.Dash) -> None:
             time_value,
             input_hm,
             sip_tag_time,
+            all_select_sip_tag,
             new_trajectories,
         )
         if not site_data_store:
@@ -1956,6 +1998,7 @@ def register_callbacks(app: dash.Dash) -> None:
         [
             Output("geo-stuctures-window", "is_open", allow_duplicate=True),
             Output("graph-site-data", "figure", allow_duplicate=True),
+            Output("graph-site-map", "figure", allow_duplicate=True),
             Output("all-select-sip-tag", "data", allow_duplicate=True),
         ],
         Input("select", "n_clicks"),
@@ -1970,6 +2013,15 @@ def register_callbacks(app: dash.Dash) -> None:
             State("sip-tag-time-store", "data"),
             State("current-select-sip-tag", "data"),
             State("all-select-sip-tag", "data"),
+            State("projection-radio", "value"),
+            State("hide-show-site", "value"),
+            State("site-coords-store", "data"),
+            State("region-site-names-store", "data"),
+            State("relayout-map-store", "data"),
+            State("scale-map-store", "data"),
+            State("input-hm", "value"),
+            State("new-points-store", "data"),
+            State("new-trajectories-store", "data"),
         ],
         prevent_initial_call=True,
     )
@@ -1985,6 +2037,15 @@ def register_callbacks(app: dash.Dash) -> None:
         sip_tag_time: str,
         clickData: dict[str, list[dict[str, float | str | dict]]],
         all_select_sip_tag: list[dict],
+        projection_value: ProjectionType,
+        show_names_site: bool,
+        site_coords: dict[Site, dict[Coordinate, float]],
+        region_site_names: dict[str, int],
+        relayout_data: dict[str, float],
+        scale_map_store: float,
+        input_hm: float,
+        new_points: dict[str, dict[str, str | float]],
+        new_trajectories: dict[str, dict[str, float | str]],
     ) -> list[go.Figure]:
         if clickData is None:
             return [False, dash.no_update]
@@ -1996,12 +2057,14 @@ def register_callbacks(app: dash.Dash) -> None:
         data = load_data_json(Path("geo_structures.json"))
         geo_stucture = data["geo_structures"][int(idx_geo_stucture)].copy()
         
-        x_time = convert_time(point["x"])
-
         index = -1
         try:
             index = next(
-                    filter(lambda i_d: all_select_sip_tag[i_d]['name'] == geo_stucture["name"], range(len(all_select_sip_tag))), -1
+                    filter(
+                        lambda i_d: all_select_sip_tag[i_d]['name'] == geo_stucture["name"], range(
+                            len(all_select_sip_tag)
+                        )
+                    ), -1
                 )
         except:
             pass
@@ -2009,7 +2072,7 @@ def register_callbacks(app: dash.Dash) -> None:
         if index != -1:
             all_select_sip_tag.pop(index)
             
-        geo_stucture["time"] = x_time
+        geo_stucture["time"] = point["x"]
         all_select_sip_tag.append(geo_stucture)
         
         site_data = create_site_data_with_values(
@@ -2022,23 +2085,37 @@ def register_callbacks(app: dash.Dash) -> None:
             sip_tag_time, 
             all_select_sip_tag,
         )
+        colors = {}
+        for data in site_data["data"]:
+            if data["name"] is None:
+                continue
+            colors[data["name"].lower()] = data["marker"]["color"]
 
-        return [False, site_data, all_select_sip_tag]
+        site_map = create_map_with_points(
+            site_coords,
+            projection_value,
+            show_names_site,
+            region_site_names,
+            site_data_store,
+            relayout_data,
+            scale_map_store,
+            new_points,
+        )
+        site_map = create_map_with_trajectories(
+            site_map,
+            local_file,
+            site_data_store,
+            site_coords,
+            sat, 
+            colors,
+            time_value,
+            input_hm,
+            sip_tag_time,
+            all_select_sip_tag,
+            new_trajectories,
+        )
 
-    def convert_time(point_x: str) -> datetime:
-        x_time = point_x
-        if len(point_x) == 16:
-            x_time += ":00"
-        elif len(point_x) == 13:
-            x_time += ":00:00"
-        elif len(point_x) == 10:
-            x_time += " 00:00:00"
-            
-        x_time = datetime.strptime(
-            x_time, "%Y-%m-%d %H:%M:%S"
-        ).replace(tzinfo=timezone.utc)
-        
-        return x_time
+        return [False, site_data, site_map, all_select_sip_tag]
 
     @app.callback(
         [
@@ -2122,6 +2199,7 @@ def register_callbacks(app: dash.Dash) -> None:
             time_value,
             input_hm,
             sip_tag_time,
+            all_select_sip_tag,
             new_trajectories,
         )
         return site_data, site_map, sat
@@ -2400,6 +2478,7 @@ def register_callbacks(app: dash.Dash) -> None:
             dash_update["time_value"],
             dash_update["input_hm"],
             dash_update["sip_tag_time"],
+            all_select_sip_tag,
             dash_update["new_trajectories"],
         )
             

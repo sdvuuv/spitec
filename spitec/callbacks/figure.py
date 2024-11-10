@@ -222,6 +222,7 @@ def create_map_with_trajectories(
         time_value: list[int],
         hm: float,
         sip_tag_time: str,
+        all_select_sip_tag: list[dict],
         new_trajectory: dict[str, dict[str, float | str]]
 ) -> go.Figure:
     
@@ -278,8 +279,15 @@ def create_map_with_trajectories(
         site_map_trajs, site_map_end_trajs = _create_trajectory(curtent_color, traj, traj.site_name)
         site_map.add_traces([site_map_trajs, site_map_end_trajs])
 
-    if sip_tag_time is not None and len(sip_tag_time) == 8:
-        site_map = _add_sip_tag(site_map, local_file_path, sip_tag_time, trajectory_objs, data_colors)
+    if (sip_tag_time is not None and len(sip_tag_time) == 8) or (all_select_sip_tag is not None):
+        site_map = _add_sip_tags(
+            site_map,
+            local_file_path,
+            sip_tag_time, 
+            trajectory_objs, 
+            data_colors, 
+            all_select_sip_tag
+        )
     return site_map
 
 def _get_objs_new_trajectories(
@@ -319,51 +327,74 @@ def _create_trajectory(
 
     return site_map_trajs, site_map_end_trajs
 
-def _add_sip_tag(
+def _add_sip_tags(
         site_map: go.Figure,
         local_file: Path, 
         sip_tag_time: str,
         trajectory_objs: list[Trajectorie],
         data_colors: dict[Site, str],
+        all_select_st: list[dict],
     ):
     current_date = local_file.stem  # Получаем '2024-01-01'
     sip_tag_datetime = datetime.strptime(f"{current_date} {sip_tag_time}", "%Y-%m-%d %H:%M:%S")
     sip_tag_datetime = sip_tag_datetime.replace(tzinfo=timezone.utc)
+    sip_data1 = {
+        "name": None,
+        "marker": "star",
+        "color": None,
+        "time": sip_tag_datetime
+    }
 
-    tag_lat = []
-    tag_lon = []
-    tag_color = []
+    if all_select_st is None:
+        all_select_sip_tag = []
+    else:
+        all_select_sip_tag = all_select_st.copy()
 
-    for traj in trajectory_objs:
-        if not traj.sat_exist: # данных по спутнику нет
-            continue
+    all_select_sip_tag.append(sip_data1)
 
-        # получаем индекс метки времени
-        sip_tag_idx, exact_time = _find_time(traj.times, sip_tag_datetime) 
+    for sip_data in all_select_sip_tag:
+        tag_lat = []
+        tag_lon = []
+        tag_color = []
+        for traj in trajectory_objs:
+            if not traj.sat_exist: # данных по спутнику нет
+                continue
 
-        idx_start_point = traj.idx_start_point
-        idx_end_point = traj.idx_end_point
-        if idx_start_point == -1:
-            idx_start_point = sip_tag_idx + 1
+            if isinstance(sip_data["time"], str):
+                tag_time = convert_time(sip_data["time"])
+            else:
+                tag_time = sip_data["time"]
 
-        if idx_end_point == -1:
-            idx_end_point = sip_tag_idx - 1
+            # получаем индекс метки времени
+            sip_tag_idx, exact_time = _find_time(traj.times, tag_time) 
 
-        if exact_time and \
-            traj.traj_lat[sip_tag_idx] is not None and \
-                sip_tag_idx >= idx_start_point and \
-                    sip_tag_idx <= idx_end_point:
-            tag_lat.append(traj.traj_lat[sip_tag_idx])
-            tag_lon.append(traj.traj_lon[sip_tag_idx])
-            tag_color.append(data_colors[traj.site_name])
+            idx_start_point = traj.idx_start_point
+            idx_end_point = traj.idx_end_point
+            if idx_start_point == -1:
+                idx_start_point = sip_tag_idx + 1
 
-    site_map_tags = create_site_map_with_tag(10, "star")
+            if idx_end_point == -1:
+                idx_end_point = sip_tag_idx - 1
 
-    site_map_tags.lat = tag_lat
-    site_map_tags.lon = tag_lon
-    site_map_tags.marker.color = tag_color
-    
-    site_map.add_trace(site_map_tags)
+            if exact_time and \
+                traj.traj_lat[sip_tag_idx] is not None and \
+                    sip_tag_idx >= idx_start_point and \
+                        sip_tag_idx <= idx_end_point:
+                tag_lat.append(traj.traj_lat[sip_tag_idx])
+                tag_lon.append(traj.traj_lon[sip_tag_idx])
+
+                if sip_data["color"] is None:
+                    tag_color.append(data_colors[traj.site_name])
+                else:
+                    tag_color = sip_data["color"]
+
+        site_map_tags = create_site_map_with_tag(10, sip_data["marker"], sip_data["name"])
+
+        site_map_tags.lat = tag_lat
+        site_map_tags.lon = tag_lon
+        site_map_tags.marker.color = tag_color
+        
+        site_map.add_trace(site_map_tags)
     return site_map
 
 def create_site_data_with_values(
@@ -389,6 +420,12 @@ def create_site_data_with_values(
 
         if all_select_sip_tag is not None and len(all_select_sip_tag) != 0:
             for tag in all_select_sip_tag:
+                
+                if isinstance(tag["time"], str):
+                    tag_time = convert_time(tag["time"])
+                else:
+                    tag_time = tag["time"]
+
                 add_sip_tag_line(site_data, tag["time"], tag["color"])
         
         # Определяем тип данных
@@ -432,6 +469,20 @@ def add_sip_tag_line(
         )
     )
 
+def convert_time(point_x: str) -> datetime:
+        x_time = point_x
+        if len(point_x) == 16:
+            x_time += ":00"
+        elif len(point_x) == 13:
+            x_time += ":00:00"
+        elif len(point_x) == 10:
+            x_time += " 00:00:00"
+            
+        x_time = datetime.strptime(
+            x_time, "%Y-%m-%d %H:%M:%S"
+        ).replace(tzinfo=timezone.utc)
+        
+        return x_time
 
 
 def _define_data_type(data_types: str) -> DataProducts:
