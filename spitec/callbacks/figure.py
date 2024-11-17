@@ -221,7 +221,7 @@ def create_map_with_trajectories(
         data_colors: dict[Site, str],
         time_value: list[int],
         hm: float,
-        sip_tag_time: str,
+        sip_tag_time_dict: dict,
         all_select_sip_tag: list[dict],
         new_trajectory: dict[str, dict[str, float | str]]
 ) -> go.Figure:
@@ -279,14 +279,16 @@ def create_map_with_trajectories(
         site_map_trajs, site_map_end_trajs = _create_trajectory(curtent_color, traj, traj.site_name)
         site_map.add_traces([site_map_trajs, site_map_end_trajs])
 
-    if (sip_tag_time is not None and len(sip_tag_time) == 8) or (all_select_sip_tag is not None):
+    if ( sip_tag_time_dict is not None and sip_tag_time_dict["time"] is not None and \
+        (len(sip_tag_time_dict["time"]) == 8 or len(sip_tag_time_dict["time"]) == 19) ) or \
+        (all_select_sip_tag is not None):
         site_map = _add_sip_tags(
             site_map,
             local_file_path,
-            sip_tag_time, 
             trajectory_objs, 
             data_colors, 
-            all_select_sip_tag
+            all_select_sip_tag,
+            sip_tag_time_dict
         )
     return site_map
 
@@ -329,30 +331,27 @@ def _create_trajectory(
 
 def _add_sip_tags(
         site_map: go.Figure,
-        local_file: Path, 
-        sip_tag_time: str,
+        local_file: Path,
         trajectory_objs: list[Trajectorie],
         data_colors: dict[Site, str],
         all_select_st: list[dict],
+        sip_tag_time_dict: dict
     ):
-    current_date = local_file.stem  # Получаем '2024-01-01'
-    sip_tag_datetime = datetime.strptime(f"{current_date} {sip_tag_time}", "%Y-%m-%d %H:%M:%S")
-    sip_tag_datetime = sip_tag_datetime.replace(tzinfo=timezone.utc)
-    sip_data1 = {
-        "name": None,
-        "marker": "star",
-        "color": None,
-        "time": sip_tag_datetime
-    }
+    if sip_tag_time_dict is not None and len(sip_tag_time_dict["time"]) == 8:
+        sip_tag_time = sip_tag_time_dict["time"]
+        current_date = local_file.stem  # Получаем '2024-01-01'
+        sip_tag_time_dict["time"] = f"{current_date} {sip_tag_time}"
+    sip_tag_time_dict["coords"] = []
 
     if all_select_st is None:
         all_select_sip_tag = []
     else:
         all_select_sip_tag = all_select_st.copy()
 
-    all_select_sip_tag.append(sip_data1)
+    if sip_tag_time_dict is not None:
+        all_select_sip_tag.append(sip_tag_time_dict)
 
-    for sip_data in all_select_sip_tag:
+    for i, sip_data in enumerate(all_select_sip_tag):
         tag_lat = []
         tag_lon = []
         tag_color = []
@@ -376,12 +375,23 @@ def _add_sip_tags(
             if idx_end_point == -1:
                 idx_end_point = sip_tag_idx - 1
 
-            if exact_time and \
-                traj.traj_lat[sip_tag_idx] is not None and \
-                    sip_tag_idx >= idx_start_point and \
-                        sip_tag_idx <= idx_end_point:
-                tag_lat.append(traj.traj_lat[sip_tag_idx])
-                tag_lon.append(traj.traj_lon[sip_tag_idx])
+            if exact_time and traj.traj_lat[sip_tag_idx] is not None:
+                if sip_tag_idx >= idx_start_point and sip_tag_idx <= idx_end_point:
+                    tag_lat.append(traj.traj_lat[sip_tag_idx])
+                    tag_lon.append(traj.traj_lon[sip_tag_idx])
+                if all_select_st is not None and \
+                    i < len(all_select_st) and \
+                        all_select_st[i]["site"] == traj.site_name:
+                    all_select_st[i]["lat"] = np.radians(traj.traj_lat[sip_tag_idx])
+                    all_select_st[i]["lon"] = np.radians(traj.traj_lon[sip_tag_idx])
+                
+                if sip_tag_time_dict is not None:
+                    sip_tag_time_dict["coords"].append({
+                        "site": traj.site_name,
+                        "lat": np.radians(traj.traj_lat[sip_tag_idx]),
+                        "lon": np.radians(traj.traj_lon[sip_tag_idx])
+                    }
+                ) 
 
                 if sip_data["color"] is None:
                     tag_color.append(data_colors[traj.site_name])
@@ -389,7 +399,6 @@ def _add_sip_tags(
                     tag_color = sip_data["color"]
 
         site_map_tags = create_site_map_with_tag(10, sip_data["marker"], sip_data["name"])
-
         site_map_tags.lat = tag_lat
         site_map_tags.lon = tag_lon
         site_map_tags.marker.color = tag_color
@@ -404,17 +413,22 @@ def create_site_data_with_values(
     local_file: str,
     time_value: list[int],
     shift: float,
-    sip_tag_time: str,
+    sip_tag_time_dict: dict,
     all_select_sip_tag: list[dict],
 ) -> go.Figure:
     site_data = create_site_data()
     
     if site_data_store is not None and site_data_store:
         local_file_path = Path(local_file)
-
-        if sip_tag_time is not None and len(sip_tag_time) == 8:
-            current_date = local_file_path.stem  # Получаем '2024-01-01'
-            sip_tag_datetime = datetime.strptime(f"{current_date} {sip_tag_time}", "%Y-%m-%d %H:%M:%S")
+        if sip_tag_time_dict is not None and \
+            sip_tag_time_dict["time"] is not None and \
+                (len(sip_tag_time_dict["time"]) == 8 or len(sip_tag_time_dict["time"]) == 19):
+            sip_tag_time = sip_tag_time_dict["time"]
+            if len(sip_tag_time) == 8:
+                current_date = local_file_path.stem  # Получаем '2024-01-01'
+                sip_tag_datetime = datetime.strptime(f"{current_date} {sip_tag_time}", "%Y-%m-%d %H:%M:%S")
+            elif len(sip_tag_time) == 19:
+                sip_tag_datetime = datetime.strptime(sip_tag_time, "%Y-%m-%d %H:%M:%S")
             sip_tag_datetime = sip_tag_datetime.replace(tzinfo=timezone.utc)
             add_sip_tag_line(site_data, sip_tag_datetime)
 
@@ -426,7 +440,7 @@ def create_site_data_with_values(
                 else:
                     tag_time = tag["time"]
 
-                add_sip_tag_line(site_data, tag["time"], tag["color"])
+                add_sip_tag_line(site_data, tag_time, tag["color"])
         
         # Определяем тип данных
         dataproduct = _define_data_type(data_types)
@@ -470,16 +484,8 @@ def add_sip_tag_line(
     )
 
 def convert_time(point_x: str) -> datetime:
-        x_time = point_x
-        if len(point_x) == 16:
-            x_time += ":00"
-        elif len(point_x) == 13:
-            x_time += ":00:00"
-        elif len(point_x) == 10:
-            x_time += " 00:00:00"
-            
         x_time = datetime.strptime(
-            x_time, "%Y-%m-%d %H:%M:%S"
+            point_x, "%Y-%m-%d %H:%M:%S"
         ).replace(tzinfo=timezone.utc)
         
         return x_time

@@ -79,7 +79,7 @@ def load_data_json(file_name: Path | str) -> dict:
     try:
         with open(file_name, 'r', encoding='utf-8') as f:
             return json.load(f)
-    except FileNotFoundError:
+    except:
         return None
 
 
