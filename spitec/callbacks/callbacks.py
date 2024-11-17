@@ -1669,6 +1669,7 @@ def register_callbacks(app: dash.Dash) -> None:
             State("sip-tag-time-store", "data"),
             State("new-points-store", "data"),
             State("new-trajectories-store", "data"),
+            State("all-select-sip-tag", "data"),
         ],
         prevent_initial_call=True,
     )
@@ -1692,6 +1693,7 @@ def register_callbacks(app: dash.Dash) -> None:
         sip_tag_time: dict,
         new_points: dict[str, dict[str, str | float]],
         new_trajectories: dict[str, dict[str, float | str]],
+        all_select_sip_tag: list[dict],
     ) -> list[bool, str]:
         session_id = None
         part_url = request.host_url.split("://")
@@ -1710,10 +1712,11 @@ def register_callbacks(app: dash.Dash) -> None:
             "satellites_options": satellites_options,
             "sat": sat,
             "shift": shift,
-            "input_hm": input_hm,
+            "hm": input_hm,
             "sip_tag_time": sip_tag_time,
             "new_points": new_points,
             "new_trajectories": new_trajectories,
+            "geo_structures": all_select_sip_tag,
         }
 
         new_file_hash = calculate_json_hash(data_to_save)
@@ -2292,6 +2295,7 @@ def register_callbacks(app: dash.Dash) -> None:
             Output("sip-tag-time-store", "data"),
             Output("new-points-store", "data"),
             Output("new-trajectories-store", "data"),
+            Output("all-select-sip-tag", "data"),
 
             Output("projection-radio-store", "data"),
             Output("checkbox-site-store", "data"),
@@ -2386,10 +2390,11 @@ def register_callbacks(app: dash.Dash) -> None:
             satellites_options = session_data["satellites_options"]
             sat = session_data["sat"]
             shift = session_data["shift"]
-            input_hm = session_data["input_hm"]
+            input_hm = session_data["hm"]
             sip_tag_time = session_data["sip_tag_time"]
             new_points = session_data["new_points"]
             new_trajectories = session_data["new_trajectories"]
+            all_select_sip_tag = session_data["geo_structures"]
             no_update = False
         
         dash_update = {
@@ -2408,10 +2413,11 @@ def register_callbacks(app: dash.Dash) -> None:
                 "sip_tag_time": sip_tag_time,
                 "new_points": new_points,
                 "new_trajectories": new_trajectories,
+                "all_select_sip_tag": all_select_sip_tag,
         }
 
         satellites_options, style_traj_error, site_map, site_data, disabled, scale_map = main_update(
-            dash_update, all_select_sip_tag
+            dash_update
         )
         return_list = [
             site_map,
@@ -2425,7 +2431,7 @@ def register_callbacks(app: dash.Dash) -> None:
         ]
 
         if no_update and not is_link: # обновление не в "share"
-            dash_no_update = [dash.no_update for _ in range(22)]
+            dash_no_update = [dash.no_update for _ in range(23)]
             return_list.extend(dash_no_update)
             return return_list
         elif no_update and is_link: # обновление в "share" НЕ в первую загрузку
@@ -2443,7 +2449,7 @@ def register_callbacks(app: dash.Dash) -> None:
                 input_hm,
             ])
 
-            dash_no_update = [dash.no_update for _ in range(10)]
+            dash_no_update = [dash.no_update for _ in range(11)]
             return_list.extend(dash_no_update)
             return return_list
         else: # обновление в "share" в первую загрузку
@@ -2460,8 +2466,7 @@ def register_callbacks(app: dash.Dash) -> None:
             return return_list
 
     def main_update(
-        dash_update: dict,
-        all_select_sip_tag: list[dict],
+        dash_update: dict
     ) -> list:
         style_traj_error = {"visibility": "hidden"}
         site_map = create_map_with_points(
@@ -2482,7 +2487,7 @@ def register_callbacks(app: dash.Dash) -> None:
             dash_update["time_value"],
             dash_update["shift"],
             dash_update["sip_tag_time"],
-            all_select_sip_tag,
+            dash_update["all_select_sip_tag"],
         )
 
         colors = {}
@@ -2501,7 +2506,7 @@ def register_callbacks(app: dash.Dash) -> None:
             dash_update["time_value"],
             dash_update["input_hm"],
             dash_update["sip_tag_time"],
-            all_select_sip_tag,
+            dash_update["all_select_sip_tag"],
             dash_update["new_trajectories"],
         )
             
