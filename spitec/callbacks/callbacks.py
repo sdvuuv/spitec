@@ -1647,7 +1647,8 @@ def register_callbacks(app: dash.Dash) -> None:
             Output("share-window", "is_open", allow_duplicate=True),
             Output("link", "value"),
             Output("copy-link", "children", allow_duplicate=True),
-            Output('session-id-store', 'data', allow_duplicate=True)
+            Output('session-id-store', 'data', allow_duplicate=True),
+            Output('current-session-id', 'data', allow_duplicate=True)
         ],
         [Input("share", "n_clicks")],
         [
@@ -1694,33 +1695,30 @@ def register_callbacks(app: dash.Dash) -> None:
         new_points: dict[str, dict[str, str | float]],
         new_trajectories: dict[str, dict[str, float | str]],
         all_select_sip_tag: list[dict],
-    ) -> list[bool, str]:
+    ) -> list[bool, str, html.I, dict[str, str], str]:
         session_id = None
-        part_url = request.host_url.split("://")
-        proto = request.headers.get('X-Forwarded-Proto', request.scheme)
-        base_url = proto + "://" + part_url[1] 
+        base_url = get_base_url() 
 
         data_to_save = {
-            "projection_value": projection_value,
+            "projection": projection_value,
             "show_names_site": show_names_site,
             "region_site_names": region_site_names,
             "site_coords": site_coords,
             "site_data_store": site_data_store,
-            "local_file": local_file,
-            "time_value": time_value,
-            "data_types": data_types,
+            "file_name": local_file,
+            "time_limit": time_value,
+            "data_type": data_types,
             "satellites_options": satellites_options,
             "sat": sat,
             "shift": shift,
             "hm": input_hm,
-            "sip_tag_time": sip_tag_time,
+            "sip_tag": sip_tag_time,
             "new_points": new_points,
             "new_trajectories": new_trajectories,
             "geo_structures": all_select_sip_tag,
         }
 
         new_file_hash = calculate_json_hash(data_to_save)
-
         if session_id_store is None:
             session_id_store = {}
 
@@ -1747,15 +1745,49 @@ def register_callbacks(app: dash.Dash) -> None:
             icon = html.I(className="fas fa-copy")
         else:
             icon = html.I(className="fas fa-check")
-        return not is_open, link, icon, session_id_store
+        return not is_open, link, icon, session_id_store, session_id
+
+    def get_base_url():
+        part_url = request.host_url.split("://")
+        proto = request.headers.get('X-Forwarded-Proto', request.scheme)
+        base_url = proto + "://" + part_url[1]
+        return base_url
     
     @app.callback(
-        Output("share-window", "is_open", allow_duplicate=True),
-        Input("cancel-share", "n_clicks"),
+        [
+            Output("share-window", "is_open", allow_duplicate=True),
+            Output("download-data", "data"),
+        ],
+        Input("upload-data", "n_clicks"),
+        [
+            State('current-session-id', 'data'),
+            State("graph-site-data", "figure"),
+        ],
         prevent_initial_call=True,
     )
-    def cancel_share(n: int) -> bool:
-        return False
+    def upload_data(
+        n: int,
+        current_session_id: str,
+        site_data: go.Figure,
+    ) -> bool:
+        if current_session_id is None:
+            return False, dash.no_update
+        
+        file_name = (FILE_FOLDER / "json") / f"{current_session_id}.json"
+        session_data = load_data_json(file_name)
+
+        base_url = get_base_url()
+        session_data["link"] = f"{base_url}session_id={current_session_id}"
+        session_data["site_data"] = []
+        for data in site_data["data"]:
+            tmp_data = {
+                "site": data["name"].lower(),
+                "times": data["x"],
+                "data": data["customdata"],
+            }
+            session_data["site_data"].append(tmp_data)
+        json_data = json.dumps(session_data)
+        return False, dict(content=json_data, filename="spitec.json")
     
     app.clientside_callback(
         """
@@ -2379,19 +2411,19 @@ def register_callbacks(app: dash.Dash) -> None:
             file_name = (FILE_FOLDER / "json") / f"{session_id}.json"
             session_data = load_data_json(file_name)
 
-            projection_value = session_data["projection_value"]
+            projection_value = session_data["projection"]
             show_names_site = session_data["show_names_site"]
             region_site_names = session_data["region_site_names"]
             site_coords = session_data["site_coords"]
             site_data_store = session_data["site_data_store"]
-            local_file = session_data["local_file"]
-            time_value = session_data["time_value"]
-            data_types = session_data["data_types"]
+            local_file = session_data["file_name"]
+            time_value = session_data["time_limit"]
+            data_types = session_data["data_type"]
             satellites_options = session_data["satellites_options"]
             sat = session_data["sat"]
             shift = session_data["shift"]
             input_hm = session_data["hm"]
-            sip_tag_time = session_data["sip_tag_time"]
+            sip_tag_time = session_data["sip_tag"]
             new_points = session_data["new_points"]
             new_trajectories = session_data["new_trajectories"]
             all_select_sip_tag = session_data["geo_structures"]

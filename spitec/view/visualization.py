@@ -50,6 +50,7 @@ def create_layout() -> html.Div:
             dcc.Store(id="is-link-store", storage_type="session", data=False),
             dcc.Store(id="current-select-sip-tag", storage_type="session"),
             dcc.Store(id="all-select-sip-tag", storage_type="session"),
+            dcc.Store(id="current-session-id", storage_type="session"),
             dcc.Location(id="url", refresh=False),
 
             dcc.Store(id="projection-radio-store", storage_type="session"),
@@ -306,8 +307,8 @@ def _create_boot_progress_window() -> dbc.Modal:
                     ),
                     html.Div(
                         dbc.Button(
-                            language["boot-progress-window"][
-                                "cancel-download"
+                            language["buttons"][
+                                "cancel"
                             ],
                             id="cancel-download",
                         ),
@@ -408,12 +409,15 @@ def _create_share_window() -> html.Div:
                                 },
                             ),
                             html.Div(
-                                dbc.Button(
-                                    language["boot-progress-window"][
-                                        "cancel-download"
-                                    ],
-                                    id="cancel-share",
-                                ),
+                                [
+                                    dbc.Button(
+                                        language["buttons"][
+                                            "upload-data"
+                                        ],
+                                        id="upload-data",
+                                    ),
+                                    dcc.Download(id="download-data")
+                                ],
                                 style={"text-align": "center", "margin-top": "20px"},
                             ),
                         ]

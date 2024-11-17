@@ -1,0 +1,19 @@
+{
+    "geo_structures": [
+        {
+            "name": "geo_structure 1",
+            "marker": "cross",
+            "color": "red"
+        },
+        {
+            "name": "geo_structure 2",
+            "marker": "hexagram",
+            "color": "green"
+        },
+        {
+            "name": "geo_structure 3",
+            "marker": "bowtie",
+            "color": "purple"
+        }
+    ]
+}
