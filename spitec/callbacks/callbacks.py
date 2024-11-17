@@ -1717,7 +1717,9 @@ def register_callbacks(app: dash.Dash) -> None:
             "new_trajectories": new_trajectories,
             "geo_structures": all_select_sip_tag,
         }
-
+        file_folder_json = (FILE_FOLDER / "json")
+        file_folder_json.mkdir(parents=True, exist_ok=True)
+        
         new_file_hash = calculate_json_hash(data_to_save)
         if session_id_store is None:
             session_id_store = {}
@@ -1745,7 +1747,7 @@ def register_callbacks(app: dash.Dash) -> None:
             icon = html.I(className="fas fa-copy")
         else:
             icon = html.I(className="fas fa-check")
-        return not is_open, link, icon, session_id_store, session_id
+        return True, link, icon, session_id_store, session_id
 
     def get_base_url():
         part_url = request.host_url.split("://")
