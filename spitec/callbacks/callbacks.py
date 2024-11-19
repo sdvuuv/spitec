@@ -11,14 +11,26 @@ import dash
 from pathlib import Path
 import base64
 import uuid
+import sys
 from flask import request
 
 
 language = languages["en"]
-FILE_FOLDER = Path("data")
+
+def set_data_folder():
+    platform = sys.platform
+    folder = Path("data")
+    if platform == "linux":
+        folder = Path("/var/spitec/data")
+    elif platform == "win32":
+        folder = Path("data")
+    folder.mkdir(parents=True, exist_ok=True)
+    return folder
 
 
 def register_callbacks(app: dash.Dash) -> None:
+    FILE_FOLDER = set_data_folder()
+
     @app.callback(
         [
             Output("graph-site-map", "figure", allow_duplicate=True),
@@ -1498,8 +1510,6 @@ def register_callbacks(app: dash.Dash) -> None:
         if date is None:
             text = language["download_window"]["unsuccessаfuly"]
         else:
-            if not FILE_FOLDER.exists():
-                FILE_FOLDER.mkdir()
             local_file = FILE_FOLDER / (date + ".h5")
             if local_file.exists():
                 text = language["download_window"]["repeat-action"]

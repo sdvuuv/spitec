@@ -337,18 +337,17 @@ def _add_sip_tags(
         all_select_st: list[dict],
         sip_tag_time_dict: dict
     ):
-    if sip_tag_time_dict is not None and len(sip_tag_time_dict["time"]) == 8:
-        sip_tag_time = sip_tag_time_dict["time"]
-        current_date = local_file.stem  # Получаем '2024-01-01'
-        sip_tag_time_dict["time"] = f"{current_date} {sip_tag_time}"
-    sip_tag_time_dict["coords"] = []
-
     if all_select_st is None:
         all_select_sip_tag = []
     else:
         all_select_sip_tag = all_select_st.copy()
 
     if sip_tag_time_dict is not None:
+        if len(sip_tag_time_dict["time"]) == 8:
+            sip_tag_time = sip_tag_time_dict["time"]
+            current_date = local_file.stem  # Получаем '2024-01-01'
+            sip_tag_time_dict["time"] = f"{current_date} {sip_tag_time}"
+        sip_tag_time_dict["coords"] = []
         all_select_sip_tag.append(sip_tag_time_dict)
 
     for i, sip_data in enumerate(all_select_sip_tag):
