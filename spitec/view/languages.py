@@ -86,6 +86,9 @@ languages = {
         "boot-progress-window":{
             "header": "Загрузка...",
         },
+        "geo_stuctures_window":{
+            "title": "Выбор метки события",
+        },
         "trajectory":{
             "hm": "Мв",
             "hms": "Время",
@@ -181,7 +184,7 @@ languages = {
             "header": "Loading...",
         },
         "geo_stuctures_window":{
-            "title": "Geo stuctures",
+            "title": "Selecting an event tag",
         },
         "trajectory":{
             "hm": "hm",
