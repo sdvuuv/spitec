@@ -51,13 +51,15 @@ def create_layout() -> html.Div:
             dcc.Store(id="current-select-sip-tag", storage_type="session"),
             dcc.Store(id="all-select-sip-tag", storage_type="session"),
             dcc.Store(id="current-session-id", storage_type="session"),
+            dcc.Store(id="events-options-store", storage_type="session"),
             dcc.Location(id="url", refresh=False),
 
             dcc.Store(id="projection-radio-store", storage_type="session"),
             dcc.Store(id="checkbox-site-store", storage_type="session"),
             dcc.Store(id="time-slider-store", storage_type="session"),
             dcc.Store(id="selection-data-types-store", storage_type="session"),
-            dcc.Store(id="selection-satellites-store", storage_type="session"),
+            dcc.Store(id="satellite-store", storage_type="session"),
+            dcc.Store(id="event-store", storage_type="session"),
             dcc.Store(id="input-shift-store", storage_type="session"),
             dcc.Store(id="input-hm-store", storage_type="session"),
             dbc.Row(
@@ -556,6 +558,8 @@ def _create_data_tab() -> list[dbc.Row]:
     selection_satellites = _create_empty_selection_satellites()
     input_shift = _create_input_shift()
     geo_stuctures_window = _create_geo_stuctures_window()
+    selection_events = _create_selection_events()
+
     data_tab = [
         dbc.Row(geo_stuctures_window),
         dbc.Row(
@@ -570,6 +574,7 @@ def _create_data_tab() -> list[dbc.Row]:
             [
                 dbc.Col(
                     [
+                        selection_events,
                         selection_satellites,
                         selection_data_types,
                         input_shift,
@@ -588,6 +593,16 @@ def _create_data_tab() -> list[dbc.Row]:
     ]
     return data_tab
 
+def _create_selection_events() -> dbc.Select:
+    select = dbc.Select(
+        id="selection-events",
+        options=[],
+        placeholder=language["data-tab"]["selection-events"],
+        style={"width": "150px", "margin-right": "20px"},
+        persistence=True,
+        persistence_type="session",
+    )
+    return select
 
 def _create_input_shift() -> dbc.Input:
     input = dbc.Input(
@@ -1125,24 +1140,17 @@ def _create_geo_stuctures_window() -> html.Div:
                     dbc.ModalBody(
                         [
                             html.Div(
-                                [
-                                    dbc.Select(
-                                        id="select-geo-stucture",
-                                        options=[],
-                                        style={
-                                            "width": "50%",
-                                        },
-                                    ),
-                                ],
+                                id="radio-container",
                                 style={
                                     "display": "flex",
                                     "justify-content": "center",
+                                    "font-size": "18px"
                                 },
                             ),
                             html.Div(
                                 dbc.Button(
-                                    language["buttons"]["select"],
-                                    id="select",
+                                    language["buttons"]["cancel"],
+                                    id="cancel-radio",
                                 ),
                                 style={
                                     "text-align": "center",

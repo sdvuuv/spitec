@@ -12,7 +12,6 @@ languages = {
             "add-element": "Добавить",
             "check-file-size": "Проверить размер файла",
             "share": "Поделиться",
-            "select": "Выбрать",
             "cancel": "Отмена",
             "upload-data": "Выгрузить данные",
         },
@@ -32,6 +31,7 @@ languages = {
                 "xaxis": "Время",
             },
             "selection-satellites": "Спутник",
+            "selection-events": "Событие",
         },
         "tab-sampling-region": {
             "label": "Выборка по региону",
@@ -109,7 +109,6 @@ languages = {
             "add-element": "Add",
             "check-file-size": "Check file size",
             "share": "Share",
-            "select": "Select",
             "cancel": "Cancel",
             "upload-data": "Upload data",
         },
@@ -129,6 +128,7 @@ languages = {
                 "xaxis": "Time",
             },
             "selection-satellites": "Satellite",
+            "selection-events": "Event",
         },
         "tab-sampling-region": {
             "label": "Sampling by region",

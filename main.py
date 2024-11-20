@@ -11,7 +11,8 @@ app = Dash(
     __name__,
     background_callback_manager=background_callback_manager,
     external_stylesheets=[dbc.themes.FLATLY],
-    title='Spitec'
+    title='Spitec',
+    suppress_callback_exceptions=True,
 )
 app.index_string = create_index_string()
 server = app.server

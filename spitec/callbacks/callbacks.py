@@ -1600,6 +1600,8 @@ def register_callbacks(app: dash.Dash) -> None:
             Output("new-points-store", "data", allow_duplicate=True),
             Output("new-trajectories-store", "data", allow_duplicate=True),
             Output("all-select-sip-tag", "data", allow_duplicate=True),
+            Output("selection-events", "options", allow_duplicate=True),
+            Output("events-options-store", "data", allow_duplicate=True),
         ],
         [Input("open-file", "n_clicks")],
         [
@@ -1632,6 +1634,15 @@ def register_callbacks(app: dash.Dash) -> None:
         satellites = get_satellites(local_file)
         options = [{"label": sat, "value": sat} for sat in satellites]
 
+        events_options = []
+        option_data = load_data_json(Path("events.json"))
+        if option_data is None:
+            events_options = dash.no_update
+        else:
+            events_options = [
+                {"label": key, "value": key} for key in option_data.keys()
+            ]
+
         scale_map = 1
         return (
             False,
@@ -1649,7 +1660,9 @@ def register_callbacks(app: dash.Dash) -> None:
             None,
             None,
             None,
-            None
+            None,
+            events_options,
+            events_options
         )
     
     @app.callback(
@@ -1674,7 +1687,9 @@ def register_callbacks(app: dash.Dash) -> None:
             State("time-slider", "value"),
             State("selection-data-types", "value"),
             State("satellites-options-store", "data"),
+            State("events-options-store", "data"),
             State("selection-satellites", "value"),
+            State("selection-events", "value"),
             State("input-shift", "value"),
             State("input-hm", "value"),
             State("sip-tag-time-store", "data"),
@@ -1698,7 +1713,9 @@ def register_callbacks(app: dash.Dash) -> None:
         time_value: list[int],
         data_types: str,
         satellites_options: list[dict[str, str]],
+        events_options: list[dict[str, str]],
         sat: Sat,
+        event: str,
         shift: float,
         input_hm: float,
         sip_tag_time: dict,
@@ -1719,13 +1736,15 @@ def register_callbacks(app: dash.Dash) -> None:
             "time_limit": time_value,
             "data_type": data_types,
             "satellites_options": satellites_options,
+            "events_options": events_options,
             "sat": sat,
+            "event": event,
             "shift": shift,
             "hm": input_hm,
             "sip_tag": sip_tag_time,
-            "new_points": new_points,
-            "new_trajectories": new_trajectories,
-            "geo_structures": all_select_sip_tag,
+            "user_points": new_points,
+            "user_trajectories": new_trajectories,
+            "events": all_select_sip_tag,
         }
         file_folder_json = (FILE_FOLDER / "json")
         file_folder_json.mkdir(parents=True, exist_ok=True)
@@ -2028,29 +2047,49 @@ def register_callbacks(app: dash.Dash) -> None:
     @app.callback(
         [
             Output("geo-stuctures-window", "is_open", allow_duplicate=True),
-            Output("select-geo-stucture", "options", allow_duplicate=True),
+            Output("radio-container", "children", allow_duplicate=True),
             Output("current-select-sip-tag", "data", allow_duplicate=True)
         ],
         Input("graph-site-data", "clickData"),
+        State("selection-events", "value"),
         prevent_initial_call=True,
     )
     def open_close_new_sip_tag(
         clickData: dict[str, list[dict[str, float | str | dict]]],
-    ) -> list[bool, list[dict[str, str | int]], dict[str, list[dict[str, float | str | dict]]]]:
-        if clickData["points"][0]['customdata'] == 0:
+        event: str,
+    ) -> list[
+        bool, 
+        list[dict[str, str | int]], 
+        dict[str, list[dict[str, float | str | dict]]]
+    ]:
+        if clickData["points"][0]['customdata'] == 0 or event is None:
             return [False, dash.no_update, None]
         
         options = []
-        option_data = load_data_json(Path("geo_structures.json"))
+        option_data = load_data_json(Path("events.json"))
         if option_data is None:
             return [dash.no_update, dash.no_update, dash.no_update]
         
         options = [
             {
                 "label": structure["name"], "value": i
-            } for i, structure in enumerate(option_data["geo_structures"])
+            } for i, structure in enumerate(option_data[event])
         ]
-        return [True, options, clickData]
+
+        radio_items = dcc.RadioItems(
+            id='dynamic-radio',
+            options=options,
+            labelStyle={'display': 'flex', "gap": "10px", 'margin-bottom': '5px'}
+        )
+        return [True, radio_items, clickData]
+    
+    @app.callback(
+        Output("geo-stuctures-window", "is_open", allow_duplicate=True),
+        Input("cancel-radio", "n_clicks"),
+        prevent_initial_call=True,
+    )
+    def cancel_radio(n: int):
+        return False
     
     @app.callback(
         [
@@ -2059,9 +2098,8 @@ def register_callbacks(app: dash.Dash) -> None:
             Output("graph-site-map", "figure", allow_duplicate=True),
             Output("all-select-sip-tag", "data", allow_duplicate=True),
         ],
-        Input("select", "n_clicks"),
+        Input("dynamic-radio", "value"),
         [
-            State("select-geo-stucture", "value"),
             State("selection-satellites", "value"),
             State("selection-data-types", "value"),
             State("local-file-store", "data"),
@@ -2080,11 +2118,11 @@ def register_callbacks(app: dash.Dash) -> None:
             State("input-hm", "value"),
             State("new-points-store", "data"),
             State("new-trajectories-store", "data"),
+            State("selection-events", "value"),
         ],
         prevent_initial_call=True,
     )
     def select_new_sip_tag(
-        n_clicks: int,
         idx_geo_stucture: str,
         sat: Sat,
         data_types: str,
@@ -2104,16 +2142,21 @@ def register_callbacks(app: dash.Dash) -> None:
         input_hm: float,
         new_points: dict[str, dict[str, str | float]],
         new_trajectories: dict[str, dict[str, float | str]],
+        event: str,
     ) -> list[go.Figure | list[dict]]:
-        if clickData is None:
-            return [False, dash.no_update, dash.no_update, dash.no_update]
+        if clickData is None or idx_geo_stucture is None:
+            is_open = True
+            if clickData is None:
+                is_open = False
+            return [is_open, dash.no_update, dash.no_update, dash.no_update]
+        
         point = clickData["points"][0]
 
         if all_select_sip_tag is None:
             all_select_sip_tag = []
 
-        data = load_data_json(Path("geo_structures.json"))
-        geo_stucture = data["geo_structures"][int(idx_geo_stucture)].copy()
+        data = load_data_json(Path("events.json"))
+        geo_stucture = data[event][int(idx_geo_stucture)].copy()
         
         index = -1
         try:
@@ -2133,6 +2176,7 @@ def register_callbacks(app: dash.Dash) -> None:
         geo_stucture["time"] = change_time(point["x"])
         geo_stucture["data"] = point['customdata']
         geo_stucture["data_types"] = data_types
+        geo_stucture["event"] = event
         geo_stucture["site"] = list(site_data_store.keys())[point['curveNumber']]
         all_select_sip_tag.append(geo_stucture)
         
@@ -2191,7 +2235,7 @@ def register_callbacks(app: dash.Dash) -> None:
         [
             Output("graph-site-data", "figure", allow_duplicate=True),
             Output("graph-site-map", "figure", allow_duplicate=True),
-            Output("selection-satellites-store", "data", allow_duplicate=True),
+            Output("satellite-store", "data", allow_duplicate=True),
         ],
         [Input("selection-satellites", "value")],
         [
@@ -2273,6 +2317,99 @@ def register_callbacks(app: dash.Dash) -> None:
             new_trajectories,
         )
         return site_data, site_map, sat
+    
+    @app.callback(
+        [
+            Output("graph-site-data", "figure", allow_duplicate=True),
+            Output("graph-site-map", "figure", allow_duplicate=True),
+            Output("event-store", "data", allow_duplicate=True),
+            Output("all-select-sip-tag", "data", allow_duplicate=True),
+        ],
+        [Input("selection-events", "value")],
+        [
+            State("selection-satellites", "value"),
+            State("selection-data-types", "value"),
+            State("local-file-store", "data"),
+            State("site-data-store", "data"),
+            State("time-slider", "value"),
+            State("input-shift", "value"),
+            State("projection-radio", "value"),
+            State("hide-show-site", "value"),
+            State("site-coords-store", "data"),
+            State("relayout-map-store", "data"),
+            State("scale-map-store", "data"),
+            State("input-hm", "value"),
+            State("region-site-names-store", "data"),
+            State("sip-tag-time-store", "data"),
+            State("new-points-store", "data"),
+            State("new-trajectories-store", "data"),
+            State("event-store", "data"),
+        ],
+        prevent_initial_call=True,
+    )
+    def change_event(
+        event: str,
+        sat: Sat,
+        data_types: str,
+        local_file: str,
+        site_data_store: dict[str, int],
+        time_value: list[int],
+        shift: float,
+        projection_value: ProjectionType,
+        show_names_site: bool,
+        site_coords: dict[Site, dict[Coordinate, float]],
+        relayout_data: dict[str, float],
+        scale_map_store: float,
+        input_hm: float,
+        region_site_names: dict[str, int],
+        sip_tag_time: dict,
+        new_points: dict[str, dict[str, str | float]],
+        new_trajectories: dict[str, dict[str, float | str]],
+        event_store: str,
+    ) -> list[go.Figure, go.Figure, str, None]:
+        if event_store == event:
+            return [dash.no_update, dash.no_update, dash.no_update, dash.no_update]
+        
+        site_data = create_site_data_with_values(
+            site_data_store,
+            sat,
+            data_types,
+            local_file,
+            time_value,
+            shift,
+            sip_tag_time,
+            None,
+        )
+        colors = {}
+        for data in site_data["data"]:
+            if data["name"] is None:
+                continue
+            colors[data["name"].lower()] = data["marker"]["color"]
+
+        site_map = create_map_with_points(
+            site_coords,
+            projection_value,
+            show_names_site,
+            region_site_names,
+            site_data_store,
+            relayout_data,
+            scale_map_store,
+            new_points,
+        )
+        site_map = create_map_with_trajectories(
+            site_map,
+            local_file,
+            site_data_store,
+            site_coords,
+            sat, 
+            colors,
+            time_value,
+            input_hm,
+            sip_tag_time,
+            None,
+            new_trajectories,
+        )
+        return site_data, site_map, event, None
 
     @app.callback(
         [
@@ -2319,6 +2456,7 @@ def register_callbacks(app: dash.Dash) -> None:
             Output("graph-site-data", "figure"),
             Output("time-slider", "disabled"),
             Output("selection-satellites", "options"),
+            Output("selection-events", "options"),
             Output("scale-map-store", "data"),
             Output("relayout-map-store", "data"),
             Output("trajectory-error", "style"),
@@ -2333,7 +2471,9 @@ def register_callbacks(app: dash.Dash) -> None:
             Output("time-slider", "value"),
             Output("selection-data-types", "value"),
             Output("satellites-options-store", "data"),
+            Output("events-options-store", "data"),
             Output("selection-satellites", "value"),
+            Output("selection-events", "value"),
             Output("input-shift", "value"),
             Output("input-hm", "value"),
             Output("sip-tag-time-store", "data"),
@@ -2345,7 +2485,8 @@ def register_callbacks(app: dash.Dash) -> None:
             Output("checkbox-site-store", "data"),
             Output("time-slider-store", "data"),
             Output("selection-data-types-store", "data"),
-            Output("selection-satellites-store", "data"),
+            Output("satellite-store", "data"),
+            Output("event-store", "data"),
             Output("input-shift-store", "data"),
             Output("input-hm-store", "data"),
         ],
@@ -2360,7 +2501,9 @@ def register_callbacks(app: dash.Dash) -> None:
             State("time-slider", "value"),
             State("selection-data-types", "value"),
             State("satellites-options-store", "data"),
+            State("events-options-store", "data"),
             State("selection-satellites", "value"),
+            State("selection-events", "value"),
             State("input-shift", "value"),
             State("input-hm", "value"),
             State("sip-tag-time-store", "data"),
@@ -2372,7 +2515,8 @@ def register_callbacks(app: dash.Dash) -> None:
             State("checkbox-site-store", "data"),
             State("time-slider-store", "data"),
             State("selection-data-types-store", "data"),
-            State("selection-satellites-store", "data"),
+            State("satellite-store", "data"),
+            State("event-store", "data"),
             State("input-shift-store", "data"),
             State("input-hm-store", "data"),
 
@@ -2390,7 +2534,9 @@ def register_callbacks(app: dash.Dash) -> None:
         time_value: list[int],
         data_types: str,
         satellites_options: list[dict[str, str]],
+        events_options: list[dict[str, str]],
         sat: Sat,
+        event: str,
         shift: float,
         input_hm: float,
         sip_tag_time: dict,
@@ -2402,7 +2548,8 @@ def register_callbacks(app: dash.Dash) -> None:
         checkbox_site_store: bool,
         time_slider_store: bool,
         selection_data_types_store: str,
-        selection_satellites_store: Sat,
+        satellite_store: Sat,
+        event_store: str,
         input_shift_store: float,
         input_hm_store: float,
         all_select_sip_tag: list[dict],
@@ -2414,7 +2561,8 @@ def register_callbacks(app: dash.Dash) -> None:
             show_names_site = checkbox_site_store
             time_value = time_slider_store
             data_types = selection_data_types_store
-            sat = selection_satellites_store
+            sat = satellite_store
+            event = event_store
             shift = input_shift_store
             input_hm = input_hm_store
         elif not is_link and pathname is not None and pathname != "/":
@@ -2432,13 +2580,15 @@ def register_callbacks(app: dash.Dash) -> None:
             time_value = session_data["time_limit"]
             data_types = session_data["data_type"]
             satellites_options = session_data["satellites_options"]
+            events_options = session_data["events_options"]
             sat = session_data["sat"]
+            event = session_data["event"]
             shift = session_data["shift"]
             input_hm = session_data["hm"]
             sip_tag_time = session_data["sip_tag"]
-            new_points = session_data["new_points"]
-            new_trajectories = session_data["new_trajectories"]
-            all_select_sip_tag = session_data["geo_structures"]
+            new_points = session_data["user_points"]
+            new_trajectories = session_data["user_trajectories"]
+            all_select_sip_tag = session_data["events"]
             no_update = False
         
         dash_update = {
@@ -2451,7 +2601,9 @@ def register_callbacks(app: dash.Dash) -> None:
                 "time_value": time_value,
                 "data_types": data_types,
                 "satellites_options": satellites_options,
+                "events_options": events_options,
                 "sat": sat,
+                "event": event,
                 "shift": shift,
                 "input_hm": input_hm,
                 "sip_tag_time": sip_tag_time,
@@ -2460,7 +2612,7 @@ def register_callbacks(app: dash.Dash) -> None:
                 "all_select_sip_tag": all_select_sip_tag,
         }
 
-        satellites_options, style_traj_error, site_map, site_data, disabled, scale_map = main_update(
+        satellites_options, events_options, style_traj_error, site_map, site_data, disabled, scale_map = main_update(
             dash_update
         )
         return_list = [
@@ -2468,14 +2620,14 @@ def register_callbacks(app: dash.Dash) -> None:
             site_data, 
             disabled, 
             satellites_options, 
+            events_options,
             scale_map, 
             None, 
             style_traj_error, 
             is_link
         ]
-
         if no_update and not is_link: # обновление не в "share"
-            dash_no_update = [dash.no_update for _ in range(23)]
+            dash_no_update = [dash.no_update for _ in range(26)]
             return_list.extend(dash_no_update)
             return return_list
         elif no_update and is_link: # обновление в "share" НЕ в первую загрузку
@@ -2488,12 +2640,14 @@ def register_callbacks(app: dash.Dash) -> None:
                 time_value,
                 data_types,
                 dash.no_update,
+                dash.no_update,
                 sat,
+                event,
                 shift,
                 input_hm,
             ])
 
-            dash_no_update = [dash.no_update for _ in range(11)]
+            dash_no_update = [dash.no_update for _ in range(12)]
             return_list.extend(dash_no_update)
             return return_list
         else: # обновление в "share" в первую загрузку
@@ -2504,6 +2658,7 @@ def register_callbacks(app: dash.Dash) -> None:
                 time_value, 
                 data_types, 
                 sat, 
+                event,
                 shift, 
                 input_hm
             ])
@@ -2559,6 +2714,11 @@ def register_callbacks(app: dash.Dash) -> None:
             satellites_options = []
         else:
             satellites_options = dash_update["satellites_options"]
+
+        if dash_update["events_options"] is None:
+            events_options = []
+        else:
+            events_options = dash_update["events_options"]
         scale_map = 1
 
         if site_map.layout.geo.projection.type != ProjectionType.ORTHOGRAPHIC.value and \
@@ -2570,4 +2730,4 @@ def register_callbacks(app: dash.Dash) -> None:
                 "color": "red",
             }
             
-        return satellites_options,style_traj_error,site_map,site_data,disabled,scale_map
+        return satellites_options,events_options,style_traj_error,site_map,site_data,disabled,scale_map
