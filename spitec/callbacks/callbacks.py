@@ -12,6 +12,7 @@ from pathlib import Path
 import base64
 import uuid
 import sys
+import re
 from flask import request
 
 
@@ -1671,7 +1672,8 @@ def register_callbacks(app: dash.Dash) -> None:
             Output("link", "value"),
             Output("copy-link", "children", allow_duplicate=True),
             Output('session-id-store', 'data', allow_duplicate=True),
-            Output('current-session-id', 'data', allow_duplicate=True)
+            Output('current-session-id', 'data', allow_duplicate=True),
+            Output('input-email', 'invalid', allow_duplicate=True)
         ],
         [Input("share", "n_clicks")],
         [
@@ -1696,6 +1698,8 @@ def register_callbacks(app: dash.Dash) -> None:
             State("new-points-store", "data"),
             State("new-trajectories-store", "data"),
             State("all-select-sip-tag", "data"),
+
+            State("input-email", "value"),
         ],
         prevent_initial_call=True,
     )
@@ -1722,7 +1726,15 @@ def register_callbacks(app: dash.Dash) -> None:
         new_points: dict[str, dict[str, str | float]],
         new_trajectories: dict[str, dict[str, float | str]],
         all_select_sip_tag: list[dict],
+        input_email: str, 
     ) -> list[bool, str, html.I, dict[str, str], str]:
+
+        if input_email is None or \
+            not re.match(r"[a-z0-9._%+-]+@[a-z0-9.-]+\.[a-z]{2,}$", input_email):
+            return_value = [dash.no_update for _ in range(5)]
+            return_value.append(True)
+            return return_value
+        
         session_id = None
         base_url = get_base_url() 
 
@@ -1776,7 +1788,7 @@ def register_callbacks(app: dash.Dash) -> None:
             icon = html.I(className="fas fa-copy")
         else:
             icon = html.I(className="fas fa-check")
-        return True, link, icon, session_id_store, session_id
+        return True, link, icon, session_id_store, session_id, False
 
     def get_base_url():
         part_url = request.host_url.split("://")
@@ -1793,6 +1805,7 @@ def register_callbacks(app: dash.Dash) -> None:
         [
             State('current-session-id', 'data'),
             State("graph-site-data", "figure"),
+            State("input-email", "value"),
         ],
         prevent_initial_call=True,
     )
@@ -1800,6 +1813,7 @@ def register_callbacks(app: dash.Dash) -> None:
         n: int,
         current_session_id: str,
         site_data: go.Figure,
+        input_email: str,
     ) -> bool:
         if current_session_id is None:
             return False, dash.no_update
@@ -1808,6 +1822,7 @@ def register_callbacks(app: dash.Dash) -> None:
         session_data = load_data_json(file_name)
 
         base_url = get_base_url()
+        session_data["email"] = input_email
         session_data["link"] = f"{base_url}session_id={current_session_id}"
         session_data["site_data"] = []
         for data in site_data["data"]:

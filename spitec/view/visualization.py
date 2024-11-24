@@ -139,6 +139,7 @@ def _create_left_side() -> list[dbc.Row]:
     share_window = _create_share_window()
     input_hm = _create_input_hm()
     input_time = _create_input_time()
+    input_email = _create_input_email()
     left_side = [
         dbc.Row(
             [
@@ -153,6 +154,10 @@ def _create_left_side() -> list[dbc.Row]:
                             share_window,
                             style={"margin-left": "15px"},
                         ),
+                        html.Div(
+                            input_email,
+                            style={"margin-left": "15px"},
+                        ),
                     ],
                     style={"display": "flex", "justify-content": "flex-start"},
                 ),
@@ -163,10 +168,11 @@ def _create_left_side() -> list[dbc.Row]:
                 checkbox_site,
                 style={
                     "display": "flex",
-                    "justify-content": "flex-end",
+                    "justify-content": "center",
                     "fontSize": "16px",
-                    "margin-top": "-3px",
-                    "margin-left": "-95px",
+                    "margin-top": "40px",
+                    "margin-bottom": "-43px",
+                    "z-index": "1"
                 },
             ),
         ),
@@ -431,6 +437,19 @@ def _create_share_window() -> html.Div:
         ]
     )
     return share_window
+
+def _create_input_email() -> dbc.Input:
+    input = dbc.Input(
+        id="input-email",
+        type="email",
+        placeholder="Email",
+        persistence=True,
+        persistence_type="session",
+        style={"width": "200px"},
+        invalid=False,
+        pattern="[a-z0-9._%+-]+@[a-z0-9.-]+\.[a-z]{2,}$",
+    )
+    return input
 
 
 def create_site_map_with_points() -> go.Scattergeo:
