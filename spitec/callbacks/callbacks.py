@@ -20,11 +20,11 @@ language = languages["en"]
 
 def set_data_folder():
     platform = sys.platform
-    folder = Path("data")
+    folder = Path(__file__).parent.parent / "data"  
     if platform == "linux":
-        folder = Path("/var/spitec/data")
+        folder = Path(__file__).parent.parent / "data"  
     elif platform == "win32":
-        folder = Path("data")
+        folder = Path(__file__).parent.parent / "data"  
     folder.mkdir(parents=True, exist_ok=True)
     return folder
 
